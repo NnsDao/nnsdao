@@ -1,0 +1,100 @@
+type Amount = variant { ICP : nat64; NDP : nat64 };
+type CanisterLogMessages = record {
+  data : vec LogMessageData;
+  lastAnalyzedMessageTimeNanos : opt nat64;
+};
+type CommonError = variant { InvalidToken : text; Other : text };
+type DisburseService = record {
+  subaccount_num : nat;
+  disbursements_process_lock : bool;
+  failed_disbursements : vec Disbursement;
+  disbursements_queue : vec Disbursement;
+};
+type Disbursement = record {
+  to : principal;
+  to_subaccount : opt vec nat8;
+  try_num : nat8;
+  from_subaccount : opt vec nat8;
+  canister : text;
+  token_idf : text;
+  amount : Amount;
+};
+type GetLogMessagesFilter = record {
+  messageRegex : opt text;
+  messageContains : opt text;
+};
+type GetLogMessagesParameters = record {
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+  fromTimeNanos : opt nat64;
+};
+type Listing = record {
+  seller_subaccount : opt vec nat8;
+  seller : principal;
+  lock_info : opt LockInfo;
+  price : Amount;
+};
+type LocalSaleStats = record { icp : Stats; ndp : Stats };
+type LockInfo = record {
+  buyer_subaccount : opt vec nat8;
+  locked : nat64;
+  buyer : principal;
+  transaction_subaccount : vec nat8;
+};
+type LogMessageData = record { timeNanos : nat64; message : text };
+type MarketService = record {
+  last_settle_cron : nat64;
+  nfts : vec record { text; NFT };
+  nft_project_list : vec record { text; vec record { Token; NftInfo } };
+};
+type NFT = record {
+  owners : vec record { nat32; text };
+  listings : vec record { nat32; Listing };
+  canister_id : text;
+  stats : LocalSaleStats;
+};
+type NftInfo = record {
+  commission : vec record { principal; nat64 };
+  standard : Standard;
+};
+type Result = variant { Ok : record { principal; nat32 }; Err : text };
+type Result_1 = variant { Ok; Err : CommonError };
+type Result_2 = variant { Ok : text; Err : CommonError };
+type Result_3 = variant {
+  Ok : vec record { nat32; opt Listing; opt nat8 };
+  Err : CommonError;
+};
+type Standard = variant { Ext; DIP20 };
+type Stats = record {
+  floor : nat64;
+  listings : nat64;
+  sales : nat64;
+  highest_price_sale : nat64;
+  lowest_price_sale : nat64;
+  supply : nat64;
+  total_volume : nat64;
+};
+type Token = variant { Icp; Ndp };
+service : {
+  add_nft_project : (text, vec record { Token; NftInfo }) -> ();
+  address : (opt principal) -> (text) query;
+  admin_kill_heartbeat : () -> ();
+  admin_start_heartbeat : () -> ();
+  backup_disburse : () -> (DisburseService) query;
+  backup_market : () -> (MarketService) query;
+  decode_token : (text) -> (Result) query;
+  delete_nft_project : (text) -> ();
+  delist : (text, opt vec nat8, text) -> (Result_1);
+  encode_token : (principal, nat32) -> (text) query;
+  get_canister_log : (GetLogMessagesParameters) -> (CanisterLogMessages) query;
+  get_nft : (text) -> (opt NFT) query;
+  get_nft_project : (text) -> (opt vec record { Token; NftInfo }) query;
+  get_owner : () -> (vec principal) query;
+  list : (text, opt vec nat8, text, Amount) -> (Result_1);
+  listings : (text) -> (vec record { nat32; Listing }) query;
+  lock : (text, text, Amount, principal, opt vec nat8) -> (Result_2);
+  pre_list : (text, text) -> (Result_2);
+  settle : (text, text) -> (Result_1);
+  stats : (text) -> (record { Stats; Stats }) query;
+  tokens_ext : (text, text) -> (Result_3);
+}
