@@ -1,10 +1,9 @@
-use std::{collections::HashMap, string};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use nnsdao_sdk_basic::DaoCustomFn;
-use serde::Serialize;
 
 use crate::DAO_SERVICE_STABLE;
 
@@ -17,7 +16,7 @@ impl DaoCustomFn for CustomDao {
     }
 
     async fn handle_proposal(&self) -> Result<(), String> {
-        todo!()
+        Ok(())
     }
 }
 

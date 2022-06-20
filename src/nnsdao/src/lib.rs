@@ -6,7 +6,7 @@ mod tools;
 
 use candid::Principal;
 use dao::DaoService;
-use ic_cdk_macros::{query, update};
+use ic_cdk_macros::update;
 use std::cell::RefCell;
 // use crate::logger::*;
 // use ic_cdk::api::stable::{StableReader, StableWriter};
