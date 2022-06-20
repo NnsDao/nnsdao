@@ -10,7 +10,6 @@ use candid::Principal;
 use dao::{DaoService, MemberItems};
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
-use ic_cdk_macros::{query, update};
 use ic_kit::ic;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
