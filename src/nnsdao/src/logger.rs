@@ -74,7 +74,7 @@ impl LoggerService {
         caller: Principal,
         method: String,
         kv: Vec<(String, String)>,
-    ) -> () {
+    ) {
         let mut message = String::from("");
         for (k, v) in kv {
             message.push_str(&format!("{}:{},", k, v));
@@ -114,7 +114,7 @@ impl LoggerService {
             })
             .take(param.count.try_into().unwrap())
             .collect();
-        
+
         // revc
         data.sort_by(|a, b| {
             if a.timeNanos < b.timeNanos {

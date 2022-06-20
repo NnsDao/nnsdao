@@ -1,11 +1,8 @@
-use crate::Data;
-use ic_cdk_macros::init;
-use ic_kit::ic;
+use crate::DAO_SERVICE_STABLE;
+use ic_kit::macros::init;
 
 #[init]
 fn init() {
     ic_cdk::setup();
-
-    let data = ic::get_mut::<Data>();
-    data.owners.add_owner(ic_cdk::caller());
+    DAO_SERVICE_STABLE.with(|dao_service| dao_service.borrow_mut().set_owner(ic_cdk::caller()))
 }
