@@ -1,19 +1,19 @@
-use std::{collections::HashMap, string};
-
+use crate::Data;
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
+use ic_kit::ic;
 use nnsdao_sdk_basic::DaoCustomFn;
 use serde::Serialize;
-
-use crate::DAO_SERVICE_STABLE;
+use std::collections::HashMap;
 
 struct CustomDao {}
 
 #[async_trait]
 impl DaoCustomFn for CustomDao {
     async fn is_member(&self, member: Principal) -> Result<bool, String> {
-        DAO_SERVICE_STABLE.with(|dao_service| dao_service.borrow().is_member(member))
+        let data = ic::get_mut::<Data>();
+        data.dao.is_member(member)
     }
 
     async fn handle_proposal(&self) -> Result<(), String> {
@@ -21,26 +21,27 @@ impl DaoCustomFn for CustomDao {
     }
 }
 
-#[derive(CandidType, Clone, Deserialize)]
-enum MemberStatusCode {
+#[derive(CandidType, Clone, Serialize, Deserialize)]
+pub enum MemberStatusCode {
     Quit(i8),    // -1
     Default(i8), // 0
     Joined(i8),  // 1
 }
+
 impl Default for MemberStatusCode {
     fn default() -> Self {
         MemberStatusCode::Default(0)
     }
 }
 
-#[derive(CandidType, Clone, Deserialize, Default)]
-struct MemberItems {
+#[derive(CandidType, Clone, Serialize, Deserialize, Default)]
+pub struct MemberItems {
     nickname: String,
     member_status_code: MemberStatusCode,
     avatar: String,
 }
 
-#[derive(CandidType, Clone, Deserialize, Default)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Default)]
 pub struct DaoService {
     owner: Option<Principal>,
     member_list: HashMap<Principal, MemberItems>,
@@ -56,6 +57,7 @@ impl DaoService {
     pub fn set_owner(&mut self, principal: Principal) {
         self.owner = Some(principal);
     }
+
     pub fn get_owner(&self) -> Option<Principal> {
         self.owner
     }
@@ -66,39 +68,38 @@ impl DaoService {
         }
         Ok(())
     }
+
     pub fn is_member(&self, member: Principal) -> Result<bool, String> {
-        if self.member_list.contains_key(&member) {
-            Ok(true)
-        } else {
-            Err(String::from("Users have not yet joined current DAO!"))
-        }
+        self.member_list
+            .get(&member)
+            .ok_or(String::from("Users have not yet joined current DAO!"))?;
+
+        Ok(true)
     }
-    pub fn join(&mut self, principal: Principal) -> Result<bool, String> {
-        match self.is_member(principal) {
-            Ok(..) => Err(String::from("Already joined!")),
-            Err(..) => {
-                self.member_list.insert(
-                    principal,
-                    MemberItems {
-                        nickname: String::from("Anonymous"),
-                        member_status_code: MemberStatusCode::Joined(1),
-                        avatar: String::from(""),
-                    },
-                );
-                Ok(true)
-            }
-        }
+
+    pub fn join(&mut self, principal: Principal) -> Result<MemberItems, String> {
+        let member = self.member_list.get(&principal).map_or(
+            Ok(MemberItems {
+                nickname: String::from("Anonymous"),
+                member_status_code: MemberStatusCode::Joined(1),
+                avatar: String::from(""),
+            }),
+            |_| Err(String::from("You are alreay a member of this group!")),
+        )?;
+
+        self.member_list.insert(principal, member.clone());
+
+        Ok(member)
     }
+
     pub fn quit(&mut self, principal: Principal) -> Result<bool, String> {
-        match self.is_member(principal) {
-            Ok(..) => match self.member_list.get_mut(&principal) {
-                Some(item) => {
-                    item.member_status_code = MemberStatusCode::Quit(-1);
-                    Ok(true)
-                }
-                None => Err(String::from("Failed to quit!")),
-            },
-            Err(..) => Err(String::from("You are not yet a member of this group!")),
-        }
+        let mut member = self
+            .member_list
+            .get_mut(&principal)
+            .ok_or(String::from("You are not yet a member of this group!"))?;
+
+        member.member_status_code = MemberStatusCode::Quit(-1);
+
+        Ok(true)
     }
 }

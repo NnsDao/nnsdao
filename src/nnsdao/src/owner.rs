@@ -1,5 +1,31 @@
-use crate::DAO_SERVICE_STABLE;
+use crate::Data;
+use ic_cdk::export::candid::CandidType;
+use ic_cdk::export::Principal;
+use ic_kit::ic;
+use serde::{Deserialize, Serialize};
 
-pub fn is_owner() -> Result<(), String> {
-    DAO_SERVICE_STABLE.with(|dao_service| dao_service.borrow().is_owner())
+#[derive(CandidType, Clone, Deserialize, Serialize, Default)]
+pub struct OwnerService {
+    #[serde(default)]
+    pub owners: Vec<Principal>,
+}
+
+impl OwnerService {
+    pub fn add_owner(&mut self, principal: Principal) -> () {
+        self.owners.push(principal)
+    }
+
+    pub fn get_owners(&self) -> Vec<Principal> {
+        self.owners.clone()
+    }
+
+    pub fn is_owner(&self, caller: Principal) -> Result<(), String> {
+        for owner in self.owners.clone() {
+            if owner == caller {
+                return Ok(());
+            }
+        }
+
+        Err("no auth".to_owned())
+    }
 }
