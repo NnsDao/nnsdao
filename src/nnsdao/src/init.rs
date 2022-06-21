@@ -8,4 +8,5 @@ fn init() {
 
     let data = ic::get_mut::<Data>();
     data.owners.add_owner(ic_cdk::caller());
+    todo!("add dao information arg. example: name describe");
 }
