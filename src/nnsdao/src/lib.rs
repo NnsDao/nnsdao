@@ -15,12 +15,6 @@ use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::vec::Vec;
 
-// #[query]
-// #[candid::candid_method(query)]
-// fn is_member(member: Principal) -> Result<bool, String> {
-//     DAO_SERVICE_STABLE.with(|dao_service| dao_service.borrow().is_member(member))
-// }
-
 #[derive(Default)]
 pub struct Data {
     pub owners: OwnerService,
