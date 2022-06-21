@@ -11,6 +11,7 @@ use dao::{DaoService, MemberItems};
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
+use nnsdao_sdk_basic::*;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::vec::Vec;
@@ -40,9 +41,11 @@ pub struct DataV0 {
 
 #[update]
 #[candid::candid_method]
-fn join(principal: Principal) -> Result<MemberItems, String> {
+// todo: add arg
+fn join() -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
-    data.dao.join(principal)
+    let caller = ic_cdk::caller();
+    data.dao.join(caller)
 }
 
 #[query]
@@ -54,9 +57,35 @@ fn member_list() -> Vec<MemberItems> {
 
 #[update]
 #[candid::candid_method]
-fn quit(principal: Principal) -> Result<bool, String> {
+fn quit() -> Result<bool, String> {
     let data = ic::get_mut::<Data>();
-    data.dao.quit(principal)
+    let caller = ic_cdk::caller();
+    data.dao.quit(caller)
+}
+
+
+#[query]
+#[candid::candid_method(query)]
+fn member_list() -> Result<Vec<Principal>, String> {
+    todo!()
+}
+
+#[query]
+#[candid::candid_method(query)]
+fn proposal_list() -> Result<Vec<Proposal>, String> {
+    todo!()
+}
+
+#[query]
+#[candid::candid_method(query)]
+fn get_proposal(id: u64) -> Result<Proposal, String> {
+    todo!()
+}
+
+#[update]
+#[candid::candid_method(update)]
+fn votes(arg: VotesArg) -> Result<(), String> {
+    todo!()
 }
 
 #[pre_upgrade]
