@@ -68,13 +68,15 @@ impl DaoService {
         }
         Ok(())
     }
-
     pub fn is_member(&self, member: Principal) -> Result<bool, String> {
         self.member_list
             .get(&member)
-            .ok_or(String::from("Users have not yet joined current DAO!"))?;
+            .ok_or_else(|| String::from("Users have not yet joined current DAO!"))?;
 
         Ok(true)
+    }
+    pub fn member_list(&self) -> Vec<MemberItems> {
+        self.member_list.values().cloned().collect()
     }
 
     pub fn join(&mut self, principal: Principal) -> Result<MemberItems, String> {
@@ -96,7 +98,7 @@ impl DaoService {
         let mut member = self
             .member_list
             .get_mut(&principal)
-            .ok_or(String::from("You are not yet a member of this group!"))?;
+            .ok_or_else(|| String::from("You are not yet a member of this group!"))?;
 
         member.member_status_code = MemberStatusCode::Quit(-1);
 

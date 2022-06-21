@@ -45,6 +45,13 @@ fn join(principal: Principal) -> Result<MemberItems, String> {
     data.dao.join(principal)
 }
 
+#[query]
+#[candid::candid_method]
+fn member_list() -> Vec<MemberItems> {
+    let data = ic::get_mut::<Data>();
+    data.dao.member_list()
+}
+
 #[update]
 #[candid::candid_method]
 fn quit(principal: Principal) -> Result<bool, String> {
