@@ -3,7 +3,7 @@ use ic_cdk::export::Principal;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(CandidType, Clone, Deserialize, Serialize, Default)]
+#[derive(CandidType, Clone, Deserialize, Serialize, Default, Debug)]
 pub struct OwnerService {
     #[serde(default)]
     pub owners: Vec<Principal>,

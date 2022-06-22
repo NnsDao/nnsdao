@@ -1,13 +1,14 @@
 use crate::Data;
+use crate::basic::{DaoBasic,DaoCustomFn};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic;
-use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn};
+// use basic::{DaoBasic, DaoCustomFn};
 use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Default)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 struct CustomDao {}
 
 #[async_trait]
@@ -22,7 +23,7 @@ impl DaoCustomFn for CustomDao {
     }
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
 pub enum MemberStatusCode {
     Quit(i8),    // -1
     Default(i8), // 0
@@ -35,7 +36,7 @@ impl Default for MemberStatusCode {
     }
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Default)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Social {
     telegram: String,
     medium: String,
@@ -43,7 +44,7 @@ pub struct Social {
     twitter: String,
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Default)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct MemberItems {
     nickname: String,
     status_code: MemberStatusCode,
@@ -52,7 +53,7 @@ pub struct MemberItems {
     social: Social,
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Default)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct DaoInfo {
     name: String,           // dao name
     poster: Option<String>, // optional dao poster
@@ -62,7 +63,7 @@ pub struct DaoInfo {
     social: Social,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Default)]
+#[derive(CandidType, Serialize, Deserialize, Default, Clone, Debug)]
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
     info: DaoInfo,

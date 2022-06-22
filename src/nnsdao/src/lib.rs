@@ -3,6 +3,7 @@ mod init;
 mod logger;
 mod owner;
 mod tools;
+mod basic;
 
 use crate::logger::*;
 use crate::owner::*;
@@ -10,23 +11,30 @@ use dao::{DaoService, MemberItems};
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
-use nnsdao_sdk_basic::*;
+use basic::*;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::vec::Vec;
 
-#[derive(Default)]
+// #[derive(Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Data {
+    #[serde(default)]
     pub owners: OwnerService,
+    #[serde(default)]
     pub logger: LoggerService,
+    #[serde(default)]
     pub dao: DaoService,
 
+    #[serde(default)]
     pub run_heartbeat: bool,
+    #[serde(default)]
     pub heartbeat_last_beat: u64,
+    #[serde(default)]
     pub heartbeat_interval_seconds: u64,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct DataV0 {
     #[serde(default)]
     pub owners: OwnerService,
