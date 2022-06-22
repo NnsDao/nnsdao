@@ -9,12 +9,7 @@ pub fn is_owner() -> Result<(), String> {
     data.owners.is_owner(caller)
 }
 
-pub fn log_message(
-    canister: String,
-    caller: Principal,
-    method: String,
-    kv: Vec<(String, String)>,
-) -> () {
+pub fn log_message(canister: String, caller: Principal, method: String, kv: Vec<(String, String)>) {
     let data = ic::get_mut::<Data>();
     data.logger.log_format_message(canister, caller, method, kv)
 }

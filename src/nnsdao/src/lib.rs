@@ -6,7 +6,6 @@ mod tools;
 
 use crate::logger::*;
 use crate::owner::*;
-use candid::Principal;
 use dao::{DaoService, MemberItems};
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
@@ -41,16 +40,16 @@ pub struct DataV0 {
 
 #[update]
 #[candid::candid_method]
-// todo: add arg
-fn join() -> Result<MemberItems, String> {
+
+fn join(user_info: MemberItems) -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
-    data.dao.join(caller)
+    data.dao.join(caller, user_info)
 }
 
 #[query]
 #[candid::candid_method]
-fn member_list() -> Vec<MemberItems> {
+fn member_list() -> Result<Vec<MemberItems>, String> {
     let data = ic::get_mut::<Data>();
     data.dao.member_list()
 }
@@ -63,16 +62,11 @@ fn quit() -> Result<bool, String> {
     data.dao.quit(caller)
 }
 
-
-#[query]
-#[candid::candid_method(query)]
-fn member_list() -> Result<Vec<Principal>, String> {
-    todo!()
-}
-
 #[query]
 #[candid::candid_method(query)]
 fn proposal_list() -> Result<Vec<Proposal>, String> {
+    // let data = ic::get_mut::<Data>();
+    // let caller = ic_cdk::caller();
     todo!()
 }
 

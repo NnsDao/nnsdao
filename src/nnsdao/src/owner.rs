@@ -1,7 +1,6 @@
-use crate::Data;
 use ic_cdk::export::candid::CandidType;
 use ic_cdk::export::Principal;
-use ic_kit::ic;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(CandidType, Clone, Deserialize, Serialize, Default)]
@@ -11,7 +10,7 @@ pub struct OwnerService {
 }
 
 impl OwnerService {
-    pub fn add_owner(&mut self, principal: Principal) -> () {
+    pub fn add_owner(&mut self, principal: Principal) {
         self.owners.push(principal)
     }
 

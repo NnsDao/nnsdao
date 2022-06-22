@@ -116,6 +116,7 @@ impl LoggerService {
             .collect();
 
         // revc
+        #[allow(clippy::comparison_chain)]
         data.sort_by(|a, b| {
             if a.timeNanos < b.timeNanos {
                 Ordering::Greater
