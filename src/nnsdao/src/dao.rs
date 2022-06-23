@@ -9,13 +9,14 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
-struct CustomDao {}
+pub struct CustomDao {}
 
 #[async_trait]
 impl DaoCustomFn for CustomDao {
     async fn is_member(&self, member: Principal) -> Result<bool, String> {
-        let data = ic::get_mut::<Data>();
-        data.dao.is_member(member)
+        // let data = ic::get_mut::<Data>();
+        // data.dao.is_member(member)
+        Ok(true)
     }
 
     async fn handle_proposal(&self) -> Result<(), String> {
@@ -67,7 +68,7 @@ pub struct DaoInfo {
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
     info: DaoInfo,
-    basic: DaoBasic<CustomDao>,
+    pub basic: DaoBasic<CustomDao>,
 }
 
 impl DaoService {

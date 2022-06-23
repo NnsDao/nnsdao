@@ -15,6 +15,7 @@ use basic::*;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::vec::Vec;
+use std::collections::HashMap;
 
 // #[derive(Default, Clone)]
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -72,10 +73,16 @@ fn quit() -> Result<bool, String> {
 
 #[query]
 #[candid::candid_method(query)]
-fn proposal_list() -> Result<Vec<Proposal>, String> {
-    // let data = ic::get_mut::<Data>();
-    // let caller = ic_cdk::caller();
-    todo!()
+fn proposal_list() -> Result<HashMap<u64,Proposal>, String> {
+    let data = ic::get::<Data>();
+    Ok(data.dao.basic.proposal_list())
+}
+
+#[update]
+#[candid::candid_method]
+async fn proposal(arg: ProposalArg) -> Result<(), String> {
+    let data = ic::get_mut::<Data>();
+    data.dao.basic.proposal(arg).await
 }
 
 #[query]
