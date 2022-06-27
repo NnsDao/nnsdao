@@ -17,7 +17,7 @@
 //! dao_basic.get_proposal(1);
 //! ```
 
-use std::collections::HashMap;
+use std::{collections::HashMap, arch::aarch64::ST};
 
 use ic_cdk::export::{candid::CandidType, Principal};
 use serde::{Deserialize, Serialize};
@@ -77,6 +77,7 @@ pub struct Proposal {
     content: String,
     proposal_state: ProposalState,
     vote_data: Vec<(Principal, Votes)>,
+    property: Option<HashMap<String,String>>,
     end_time: u64,
     timestemp: u64,
 }
@@ -88,6 +89,7 @@ pub struct ProposalArg {
     pub proposer: Principal,
     pub title: String,
     pub content: String,
+    pub property: Option<HashMap<String,String>>,
     pub end_time: u64,
 }
 
@@ -138,6 +140,7 @@ where
             content: arg.content,
             proposal_state: ProposalState::Open,
             vote_data: Vec::new(),
+            property: arg.property,
             end_time: arg.end_time,
             timestemp: api::time(),
         };
