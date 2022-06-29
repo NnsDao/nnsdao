@@ -16,4 +16,4 @@ ic-cdk-macros = "0.5.1"
 serde = "1.0"
 serde_cbor = "0.11.2"
 async-trait = "0.1.23"
-nnsdao_sdk_basic = "0.1.1"
+nnsdao_sdk_basic = { git = "https://github.com/NnsDao/nnsdao_sdk.git", branch = "main" }

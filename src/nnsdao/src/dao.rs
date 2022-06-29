@@ -1,22 +1,25 @@
-use crate::Data;
-use crate::basic::{DaoBasic,DaoCustomFn};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic;
-// use basic::{DaoBasic, DaoCustomFn};
+use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Votes};
 use serde::Serialize;
 use std::collections::HashMap;
 
+use crate::Data;
+
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
-
+#[derive(CandidType, Clone, Deserialize, Debug)]
+pub struct UserVoteArgs {
+    pub id: u64,
+    pub vote: Votes,
+}
 #[async_trait]
 impl DaoCustomFn for CustomDao {
     async fn is_member(&self, member: Principal) -> Result<bool, String> {
-        // let data = ic::get_mut::<Data>();
-        // data.dao.is_member(member)
-        Ok(true)
+        let data = ic::get_mut::<Data>();
+        data.dao.is_member(member)
     }
 
     async fn handle_proposal(&self) -> Result<(), String> {

@@ -880,8 +880,7 @@ dependencies = [
 [[package]]
 name = "nnsdao_sdk_basic"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f3bb967156638ff4cd901d3dc15685616ad4438af95241703b1f95d5a293d73"
+source = "git+https://github.com/NnsDao/nnsdao_sdk.git?branch=main#3acfc21473cffd9e2ddb7596b2b307c4a4efa8c0"
 dependencies = [
  "async-trait",
  "candid",

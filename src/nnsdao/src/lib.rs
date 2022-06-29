@@ -3,22 +3,24 @@ mod init;
 mod logger;
 mod owner;
 mod tools;
-mod basic;
 
 use crate::logger::*;
 use crate::owner::*;
+use dao::UserVoteArgs;
 use dao::{DaoService, MemberItems};
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
-use basic::*;
+use nnsdao_sdk_basic::Proposal;
+use nnsdao_sdk_basic::ProposalArg;
+use nnsdao_sdk_basic::VotesArg;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::Read;
 use std::vec::Vec;
-use std::collections::HashMap;
 
 // #[derive(Default, Clone)]
-#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 pub struct Data {
     #[serde(default)]
     pub owners: OwnerService,
@@ -49,7 +51,6 @@ pub struct DataV0 {
 
 #[update]
 #[candid::candid_method]
-
 fn join(user_info: MemberItems) -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
@@ -59,7 +60,7 @@ fn join(user_info: MemberItems) -> Result<MemberItems, String> {
 #[query]
 #[candid::candid_method]
 fn member_list() -> Result<Vec<MemberItems>, String> {
-    let data = ic::get_mut::<Data>();
+    let data = ic::get::<Data>();
     data.dao.member_list()
 }
 
@@ -73,7 +74,7 @@ fn quit() -> Result<bool, String> {
 
 #[query]
 #[candid::candid_method(query)]
-fn proposal_list() -> Result<HashMap<u64,Proposal>, String> {
+fn proposal_list() -> Result<HashMap<u64, Proposal>, String> {
     let data = ic::get::<Data>();
     Ok(data.dao.basic.proposal_list())
 }
@@ -88,13 +89,21 @@ async fn proposal(arg: ProposalArg) -> Result<(), String> {
 #[query]
 #[candid::candid_method(query)]
 fn get_proposal(id: u64) -> Result<Proposal, String> {
-    todo!()
+    let data = ic::get::<Data>();
+    data.dao.basic.get_proposal(id)
 }
 
 #[update]
 #[candid::candid_method(update)]
-fn votes(arg: VotesArg) -> Result<(), String> {
-    todo!()
+async fn votes(arg: UserVoteArgs) -> Result<(), String> {
+    let caller = ic::caller();
+    let data = ic::get_mut::<Data>();
+    let vote_arg = VotesArg {
+        caller,
+        id: arg.id,
+        vote: arg.vote,
+    };
+    data.dao.basic.vote(vote_arg).await
 }
 
 #[pre_upgrade]
