@@ -2,9 +2,9 @@ use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic;
-use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Votes};
+use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, ProposalArg, Votes, VotesArg};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, future::Future};
 
 use crate::Data;
 
@@ -66,6 +66,10 @@ pub struct DaoInfo {
     intro: String,          // dao intro
     social: Social,
 }
+pub struct VoteArg {
+    pub id: u64,
+    pub ndp_count: u64,
+}
 
 #[derive(CandidType, Serialize, Deserialize, Default, Clone, Debug)]
 pub struct DaoService {
@@ -82,6 +86,42 @@ impl DaoService {
 
         Ok(true)
     }
+    pub async fn initiate_proposal(&mut self, arg: ProposalArg) -> Result<(), String> {
+        // conditions , user must hold xxx ndp
+        // TODO:
+        let balance = 101;
+
+        if balance > 100 {
+            self.basic.proposal(arg).await?;
+            Ok(())
+        } else {
+            Err("Your NDP balance is less than the minimum 1000 limit".to_string())
+        }
+    }
+    async fn mortgage_ndp(&mut self, count: u64) -> Result<bool, String> {
+        // TODO:
+        // transfer ndp
+        Ok(true)
+    }
+    pub fn proposal_list(
+        &self,
+    ) -> std::collections::hash_map::IntoIter<u64, nnsdao_sdk_basic::Proposal> {
+        self.basic.proposal_list().into_iter()
+    }
+    pub async fn vote(&mut self, arg: VoteArg) -> Result<(), String> {
+        // mortgage_ndp xxx ndp first
+        self.mortgage_ndp(arg.ndp_count).await?;
+        // TODO:
+        self.basic
+            .vote(VotesArg {
+                id: arg.id,
+                caller: ic::caller(),
+                vote: Votes::Yes(arg.ndp_count),
+            })
+            .await?;
+        Ok(())
+    }
+
     pub fn dao_info(&mut self) -> Result<DaoInfo, String> {
         Ok(self.info.clone())
     }
