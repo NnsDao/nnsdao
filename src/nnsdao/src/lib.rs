@@ -2,10 +2,12 @@ mod dao;
 mod init;
 mod logger;
 mod owner;
+pub mod standard_ext;
 mod tools;
 
 use crate::logger::*;
 use crate::owner::*;
+use dao::JoinDaoParams;
 use dao::UserVoteArgs;
 use dao::{DaoService, MemberItems};
 use ic_cdk::api::stable::{StableReader, StableWriter};
@@ -51,7 +53,7 @@ pub struct DataV0 {
 
 #[update]
 #[candid::candid_method]
-fn join(user_info: MemberItems) -> Result<MemberItems, String> {
+fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
     data.dao.join(caller, user_info)

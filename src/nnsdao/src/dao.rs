@@ -4,13 +4,13 @@ use ic_cdk::export::Principal;
 use ic_kit::ic;
 use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, ProposalArg, Votes, VotesArg};
 use serde::Serialize;
-use std::{collections::HashMap, future::Future};
+use std::collections::HashMap;
 
 use crate::Data;
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
-#[derive(CandidType, Clone, Deserialize, Debug)]
+#[derive(CandidType, Clone, Deserialize, Serialize, Debug)]
 pub struct UserVoteArgs {
     pub id: u64,
     pub vote: Votes,
@@ -27,45 +27,53 @@ impl DaoCustomFn for CustomDao {
     }
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
-pub enum MemberStatusCode {
-    Quit(i8),    // -1
-    Default(i8), // 0
-    Joined(i8),  // 1
-}
+// / error ic post_upgrade not support
+// #[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
+// pub enum MemberStatusCode {
+//     Quit(i8),    // -1
+//     Default(i8), // 0
+//     Joined(i8),  // 1
+// }
 
-impl Default for MemberStatusCode {
-    fn default() -> Self {
-        MemberStatusCode::Default(0)
-    }
-}
+// impl Default for MemberStatusCode {
+//     fn default() -> Self {
+//         MemberStatusCode::Default(0)
+//     }
+// }
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Social {
-    telegram: String,
-    medium: String,
-    discord: String,
-    twitter: String,
+    key: String,
+    link: String,
 }
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct MemberItems {
     nickname: String,
-    status_code: MemberStatusCode,
+    status_code: i8, // -1 quit | 0 default | 1 joined |
     avatar: String,
     intro: String,
-    social: Social,
+    social: Vec<Social>,
+}
+#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
+pub struct JoinDaoParams {
+    nickname: String,
+    avatar: String,
+    intro: String,
+    social: Vec<Social>,
 }
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct DaoInfo {
-    name: String,           // dao name
-    poster: Option<String>, // optional dao poster
-    avatar: String,         // dao avatar
-    tags: Vec<String>,      // dao tags
-    intro: String,          // dao intro
+    name: String,      // dao name
+    poster: String,    //  dao poster
+    avatar: String,    // dao avatar
+    tags: Vec<String>, // dao tags
+    intro: String,     // dao intro
     social: Social,
 }
+
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 pub struct VoteArg {
     pub id: u64,
     pub ndp_count: u64,
@@ -141,12 +149,12 @@ impl DaoService {
     pub fn join(
         &mut self,
         principal: Principal,
-        user_info: MemberItems,
+        user_info: JoinDaoParams,
     ) -> Result<MemberItems, String> {
         let member = self.member_list.get(&principal).map_or(
             Ok(MemberItems {
                 nickname: user_info.nickname,
-                status_code: MemberStatusCode::Joined(1),
+                status_code: 0,
                 avatar: user_info.avatar,
                 intro: user_info.intro,
                 social: user_info.social,
@@ -165,7 +173,7 @@ impl DaoService {
             .get_mut(&principal)
             .ok_or_else(|| String::from("You are not yet a member of this group!"))?;
 
-        member.status_code = MemberStatusCode::Quit(-1);
+        member.status_code = -1;
 
         Ok(true)
     }
