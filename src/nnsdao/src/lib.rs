@@ -2,7 +2,6 @@ mod dao;
 mod init;
 mod logger;
 mod owner;
-pub mod standard_ext;
 mod tools;
 
 use crate::logger::*;
