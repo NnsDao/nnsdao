@@ -54,6 +54,7 @@ jobs:
           node .github/update-candid.mjs
       # generate files
       - name: Dfx Build
+        env: RUST_BACKTRACE:1
         run: |
           # npm ci > /dev/null 2>&1 || true
           sudo dfx canister create --all
