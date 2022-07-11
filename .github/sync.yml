@@ -1,0 +1,5 @@
+NnsDao/ActorService@main:
+  - source: .dfx/local/canisters/
+    dest: src/
+    replace: true
+    deleteOrphaned: true
