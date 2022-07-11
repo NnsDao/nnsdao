@@ -15,7 +15,8 @@ const dfxJson = JSON.parse(readFileSync(relativeToRootPath('dfx.json')).toString
 
 Object.keys(canister_ids).forEach(async canisterName => {
   const cid = canister_ids[canisterName].ic;
-  const candidPath = dfxJson.canisters[canisterName].candid;
+  const candidPath = dfxJson.canisters?.[canisterName]?.candid;
+  if (!candidPath) return;
   try {
     const candidStr = await getCandid(cid);
     if (!candidStr) {
