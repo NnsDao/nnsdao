@@ -1,0 +1,69 @@
+# This is a workflow to help you auto update IC generated files to indicated package
+name: Build IC
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches:
+      - 'releases/**'
+      - 'release'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # nodejs env
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      # rust env
+      # https://github.com/marketplace/actions/set-up-a-rust-toolchain
+      - name: Setup rust env
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+
+      - name: Rustup wasm32
+        run: |
+          rustup toolchain install nightly
+          rustup target add wasm32-unknown-unknown
+
+      # Config environment
+      - name: Config environment
+        run: |
+          bash .github/config-env.sh
+
+      # update candid file
+      - name: Update latest candid
+        run: |
+          node .github/update-candid.mjs
+      # generate files
+      - name: Dfx Build
+        run: |
+          # npm ci > /dev/null 2>&1 || true
+          sudo dfx canister create --all
+          sudo dfx build
+          # for frontend type check
+          echo "copy index.d.ts"
+          bash ./.github/copy-types.sh || true
+
+      # sync file to repo
+      # https://github.com/marketplace/actions/repo-file-sync-action#%EF%B8%8F-sync-configuration
+      - name: Run GitHub File Sync
+        uses: BetaHuhn/repo-file-sync-action@v1.17.17
+        with:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SKIP_PR: true
