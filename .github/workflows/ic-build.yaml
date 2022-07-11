@@ -58,7 +58,6 @@ jobs:
           RUST_BACKTRACE1: 1
         run: |
           # npm ci > /dev/null 2>&1 || true
-          export RUST_BACKTRACE1=${RUST_BACKTRACE1}
           sudo dfx start &
           sleep 60
           sudo dfx canister create --all
