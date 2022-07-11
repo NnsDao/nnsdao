@@ -22,7 +22,7 @@ Object.keys(canister_ids).forEach(async canisterName => {
       console.warn('candid Not found');
       process.exit(1);
     }
-
+    console.log('Found latest candid', candidStr);
     // @ts-ignore
     writeFileSync(relativeToRootPath(`${candidPath}`), candidStr);
   } catch (error) {
