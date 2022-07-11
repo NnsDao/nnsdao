@@ -58,11 +58,14 @@ jobs:
           RUST_BACKTRACE1: 1
         run: |
           # npm ci > /dev/null 2>&1 || true
+          sudo dfx start &
+          sleep 60
           sudo dfx canister create --all
           sudo dfx build
           # for frontend type check
           echo "copy index.d.ts"
           bash ./.github/copy-types.sh || true
+          dfx stop || true
 
       # sync file to repo
       # https://github.com/marketplace/actions/repo-file-sync-action#%EF%B8%8F-sync-configuration
