@@ -1,4 +1,4 @@
-NnsDao/ActorService@main:
+NnsDao/nnsdao-kit@dev:
   - source: .dfx/local/canisters/
     dest: src/
     replace: true
