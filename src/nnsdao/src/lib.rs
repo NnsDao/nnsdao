@@ -82,9 +82,10 @@ fn proposal_list() -> Result<HashMap<u64, Proposal>, String> {
 
 #[update]
 #[candid::candid_method]
-async fn proposal(arg: ProposalArg) -> Result<(), String> {
+async fn initiate_proposal(arg: ProposalArg) -> Result<(), String> {
     let data = ic::get_mut::<Data>();
-    data.dao.basic.proposal(arg).await
+    data.dao.initiate_proposal(arg).await?;
+    Ok(())
 }
 
 #[query]
@@ -110,7 +111,6 @@ async fn votes(arg: UserVoteArgs) -> Result<(), String> {
 #[pre_upgrade]
 fn pre_upgrade() {
     let data = ic::get::<Data>();
-
     let writer = StableWriter::default();
     serde_cbor::to_writer(
         writer,

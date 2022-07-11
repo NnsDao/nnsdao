@@ -23,6 +23,7 @@ impl DaoCustomFn for CustomDao {
     }
 
     async fn handle_proposal(&self) -> Result<(), String> {
+        // heartbeat
         Ok(())
     }
 }
