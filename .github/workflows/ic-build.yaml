@@ -59,7 +59,7 @@ jobs:
         run: |
           npm ci > /dev/null 2>&1 || true
           dfx start &
-          sleep 10
+          sleep 30
           dfx canister create --all
           dfx build
           dfx stop || true
