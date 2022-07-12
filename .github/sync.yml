@@ -1,5 +1,6 @@
+# Due to override whole folder,we need to dynamic generate this config
 NnsDao/nnsdao-kit@dev:
-  - source: .dfx/local/canisters/
-    dest: src/
-    replace: true
-    deleteOrphaned: true
+  # - source: src/
+  #   dest: src/
+  #   replace: true
+  #   deleteOrphaned: true

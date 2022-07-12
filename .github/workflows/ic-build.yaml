@@ -59,7 +59,7 @@ jobs:
         run: |
           npm ci > /dev/null 2>&1 || true
           dfx start &
-          sleep 60
+          sleep 10
           dfx canister create --all
           dfx build
           dfx stop || true
@@ -67,6 +67,11 @@ jobs:
           echo "copy index.d.ts"
           bash ./.github/copy-types.sh || true
 
+      - name: Generate sync.yml
+        run: |
+          # Must Use prettier format generated {.js,.ts} file
+          npx --yes prettier --single-quote --trailing-comma none --write ".dfx/local/canisters/**/*.{ts,js}"
+          node .github/update-sync.yml.mjs
       # sync file to repo
       # https://github.com/marketplace/actions/repo-file-sync-action#%EF%B8%8F-sync-configuration
       - name: Run GitHub File Sync
@@ -74,3 +79,5 @@ jobs:
         with:
           GH_PAT: ${{ secrets.GH_PAT }}
           SKIP_PR: true
+          PR_LABELS: 'latest'
+          COMMIT_EACH_FILE: false
