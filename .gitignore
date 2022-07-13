@@ -19,7 +19,8 @@ Cargo.lock
 
 # dfx temporary files
 .dfx/
-
+package.json
+package-lock.json
 # frontend code
 node_modules/
 dist/
