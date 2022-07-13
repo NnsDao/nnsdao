@@ -155,7 +155,7 @@ impl DaoService {
         let member = self.member_list.get(&principal).map_or(
             Ok(MemberItems {
                 nickname: user_info.nickname,
-                status_code: 0,
+                status_code: 1,
                 avatar: user_info.avatar,
                 intro: user_info.intro,
                 social: user_info.social,
@@ -167,7 +167,12 @@ impl DaoService {
 
         Ok(member)
     }
-
+    pub fn user_info(&self, principal: Principal) -> Result<MemberItems, String> {
+        self.member_list
+            .get(&principal)
+            .cloned()
+            .ok_or_else(|| "You are not yet a member of this group!".to_string())
+    }
     pub fn quit(&mut self, principal: Principal) -> Result<bool, String> {
         let mut member = self
             .member_list

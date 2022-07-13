@@ -55,6 +55,8 @@ pub struct DataV0 {
 fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
+    dbg!("caller-dbg {}", caller);
+    ic_cdk::println!("caller-ic {}", caller);
     data.dao.join(caller, user_info)
 }
 
@@ -63,6 +65,13 @@ fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
 fn member_list() -> Result<Vec<MemberItems>, String> {
     let data = ic::get::<Data>();
     data.dao.member_list()
+}
+
+#[query]
+#[candid::candid_method]
+fn user_info() -> std::result::Result<MemberItems, String> {
+    let data = ic::get::<Data>();
+    data.dao.user_info(ic_cdk::caller())
 }
 
 #[update]
