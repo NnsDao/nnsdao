@@ -13,11 +13,19 @@ const anonymousAgent = new HttpAgent({ host: onlineHost });
 const canister_ids = JSON.parse(readFileSync(relativeToRootPath('canister_ids.json')).toString());
 const dfxJson = JSON.parse(readFileSync(relativeToRootPath('dfx.json')).toString());
 
+const canisterNameList = Object.keys(canister_ids);
+
 // in case of candid point to same file,sync
-for (const canisterName of Object.keys(canister_ids)) {
-  const cid = canister_ids[canisterName].ic;
+for (let canisterName of canisterNameList) {
+  //   if provide corresponded test canister, use test
+  const cid =
+    canister_ids[`${canisterName}_test`].ic ||
+    canister_ids[`${canisterName}-test`].ic ||
+    canister_ids[canisterName].ic;
   const candidPath = dfxJson.canisters?.[canisterName]?.candid;
+
   if (!candidPath) continue;
+
   try {
     const candidStr = await getCandid(cid);
     if (!candidStr) {
