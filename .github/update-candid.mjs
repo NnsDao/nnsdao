@@ -19,8 +19,8 @@ const canisterNameList = Object.keys(canister_ids);
 for (let canisterName of canisterNameList) {
   //   if provide corresponded test canister, use test
   const cid =
-    canister_ids[`${canisterName}_test`].ic ||
-    canister_ids[`${canisterName}-test`].ic ||
+    canister_ids[`${canisterName}_test`]?.ic ||
+    canister_ids[`${canisterName}-test`]?.ic ||
     canister_ids[canisterName].ic;
   const candidPath = dfxJson.canisters?.[canisterName]?.candid;
 
