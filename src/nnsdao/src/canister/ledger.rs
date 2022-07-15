@@ -94,9 +94,7 @@ pub async fn ndp_transfer(
     };
 
     match ledger.transfer(arg).await.unwrap().0 {
-        TransferResponse::ok(block) => {
-            return Ok(u64::try_from(block).unwrap());
-        }
+        TransferResponse::ok(block) => Ok(u64::try_from(block).unwrap()),
         TransferResponse::err(err) => {
             return Err(format!("ledger transfer error {:?}", err));
         }

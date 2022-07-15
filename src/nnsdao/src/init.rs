@@ -1,4 +1,4 @@
-use crate::{dao::DaoInfo, Data};
+use crate::Data;
 use ic_cdk_macros::init;
 use ic_kit::ic;
 
