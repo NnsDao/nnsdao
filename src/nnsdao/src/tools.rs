@@ -68,8 +68,8 @@ pub fn decode_token(mut token: String) -> Result<(Principal, u32), String> {
                 | (index_vec[2] as u32) << 8
                 | (index_vec[1] as u32) << 16
                 | (index_vec[0] as u32) << 24;
-            return Ok((canister, index));
+            Ok((canister, index))
         }
-        None => return Err("Token format error".to_owned()),
+        None => Err("Token format error".to_owned()),
     }
 }

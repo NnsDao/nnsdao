@@ -79,7 +79,7 @@ impl DisburseService {
         self.disbursements_queue.push(disbursement);
     }
 
-    pub async fn handle_faild_disbursements(
+    pub async fn handle_failed_disbursements(
         &mut self,
     ) -> (Option<Disbursement>, Result<String, String>) {
         if self.failed_disbursements.is_empty() {
@@ -92,7 +92,7 @@ impl DisburseService {
         (Some(disbursement), r)
     }
 
-    pub async fn handle_pendding_disbursements(
+    pub async fn handle_pending_disbursements(
         &mut self,
     ) -> (Option<Disbursement>, Result<String, String>) {
         if self.disbursements_queue.is_empty() {

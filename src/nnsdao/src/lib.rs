@@ -8,7 +8,6 @@ mod tools;
 
 use crate::logger::*;
 use crate::owner::*;
-use canister::ledger;
 use dao::JoinDaoParams;
 use dao::ProposalBody;
 use dao::ProposalContent;
