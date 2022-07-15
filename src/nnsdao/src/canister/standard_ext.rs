@@ -5,7 +5,7 @@ pub type TokenIdentifier = String;
 pub type TokenIndex = u32; // Represents an individual token's index within a given canister.
 
 pub type AccountIdentifier = String;
-pub type SubAccount = Vec<u8>;
+pub type Subaccount = Vec<u8>;
 
 pub type Memo = Vec<u8>;
 
@@ -22,7 +22,7 @@ pub struct TransferRequest {
     pub notify: bool,
     pub from: User,
     pub memo: Memo,
-    pub subaccount: Option<SubAccount>,
+    pub subaccount: Option<Subaccount>,
     pub amount: u128,
 }
 

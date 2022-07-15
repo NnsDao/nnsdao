@@ -3,14 +3,14 @@ use crate::canister::standard_ext::{self as ext, TransferRequest, TransferRespon
 use ic_cdk::export::candid::Principal;
 
 use ic_ledger_types::{
-    AccountBalanceArgs, AccountIdentifier, BlockIndex, Memo, SubAccount, Tokens, TransferArgs,
+    AccountBalanceArgs, AccountIdentifier, BlockIndex, Memo, Subaccount, Tokens, TransferArgs,
     DEFAULT_FEE, DEFAULT_SUBACCOUNT, MAINNET_LEDGER_CANISTER_ID,
 };
 use std::convert::TryFrom;
 
 pub async fn icp_balance(
     user: Principal,
-    user_subaccount: Option<SubAccount>,
+    user_subaccount: Option<Subaccount>,
 ) -> Result<u128, String> {
     let arg = AccountBalanceArgs {
         account: AccountIdentifier::new(&user, &user_subaccount.unwrap_or(DEFAULT_SUBACCOUNT)),
@@ -29,9 +29,9 @@ pub async fn icp_balance(
 }
 
 pub async fn icp_transfer(
-    from_sub_account: Option<SubAccount>,
+    from_sub_account: Option<Subaccount>,
     to: Principal,
-    to_sub_account: Option<SubAccount>,
+    to_sub_account: Option<Subaccount>,
     amount: u64,
     memo: Memo,
 ) -> Result<BlockIndex, String> {
@@ -39,7 +39,7 @@ pub async fn icp_transfer(
         memo,
         amount: Tokens::from_e8s(amount),
         fee: DEFAULT_FEE,
-        from_subAccount: from_sub_account,
+        from_subaccount: from_sub_account,
         to: AccountIdentifier::new(&to, &to_sub_account.unwrap_or(DEFAULT_SUBACCOUNT)),
         created_at_time: None,
     };
@@ -52,7 +52,7 @@ pub async fn icp_transfer(
 
 pub async fn ndp_balance(
     user: Principal,
-    user_subaccount: Option<SubAccount>,
+    user_subaccount: Option<Subaccount>,
 ) -> Result<u128, String> {
     let ledger = CanisterExtClient::new(String::from("vgqnj-miaaa-aaaal-qaapa-cai"));
 
@@ -72,9 +72,9 @@ pub async fn ndp_balance(
 // Transfer funds on nns ledger
 pub async fn ndp_transfer(
     from: Principal,
-    from_subaccount: Option<SubAccount>,
+    from_subaccount: Option<Subaccount>,
     to: Principal,
-    to_subaccount: Option<SubAccount>,
+    to_subaccount: Option<Subaccount>,
     amount: u128,
     memo: Vec<u8>,
 ) -> Result<BlockIndex, String> {

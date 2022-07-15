@@ -3,7 +3,7 @@ use crate::canister::standard_ext::TokenIdentifier;
 use crate::tools;
 use candid::{CandidType, Principal};
 use ic_ledger_types::{
-    AccountIdentifier as LedgerAccountIdentifier, Memo, SubAccount, DEFAULT_SUBACCOUNT,
+    AccountIdentifier as LedgerAccountIdentifier, Memo, Subaccount, DEFAULT_SUBACCOUNT,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -31,9 +31,9 @@ impl fmt::Display for Amount {
 pub struct Disbursement {
     pub canister: String,
     pub token_idf: TokenIdentifier,
-    pub from_subaccount: Option<SubAccount>,
+    pub from_subaccount: Option<Subaccount>,
     pub to: Principal,
-    pub to_subaccount: Option<SubAccount>,
+    pub to_subaccount: Option<Subaccount>,
     pub amount: Amount,
     pub try_num: u8,
 }
@@ -64,7 +64,7 @@ impl DisburseService {
         self.subaccount_num
     }
 
-    pub fn get_transaction_subaccount(&mut self) -> SubAccount {
+    pub fn get_transaction_subaccount(&mut self) -> Subaccount {
         let num = self.get_new_subaccount_num();
 
         let mut default_subaccount = DEFAULT_SUBACCOUNT;

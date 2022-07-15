@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
-use ic_ledger_types::SubAccount;
+use ic_ledger_types::Subaccount;
 use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Proposal, ProposalArg, Votes, VotesArg};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -206,7 +206,7 @@ pub struct ProposalContent {
     pub title: String,
     pub content: String,
     pub end_time: u64,
-    pub sub_account: SubAccount,
+    pub sub_account: Subaccount,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -215,12 +215,12 @@ pub struct ProposalBody {
     pub title: String,
     pub content: String,
     pub end_time: u64,
-    pub sub_account: SubAccount,
+    pub sub_account: Subaccount,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct ProposerListItem {
     proposer: Principal,
-    sub_account: SubAccount,
+    sub_account: Subaccount,
     id: u64,
 }
