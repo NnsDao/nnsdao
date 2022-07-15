@@ -1,16 +1,16 @@
-use crate::ext_client::CanisterExtClient;
-use crate::standard_ext::{self as ext, TransferRequest, TransferResponse, User};
+use crate::canister::ext_client::CanisterExtClient;
+use crate::canister::standard_ext::{self as ext, TransferRequest, TransferResponse, User};
 use ic_cdk::export::candid::Principal;
 
 use ic_ledger_types::{
-    AccountBalanceArgs, AccountIdentifier, BlockIndex, Memo, Subaccount, Tokens, TransferArgs,
+    AccountBalanceArgs, AccountIdentifier, BlockIndex, Memo, SubAccount, Tokens, TransferArgs,
     DEFAULT_FEE, DEFAULT_SUBACCOUNT, MAINNET_LEDGER_CANISTER_ID,
 };
 use std::convert::TryFrom;
 
 pub async fn icp_balance(
     user: Principal,
-    user_subaccount: Option<Subaccount>,
+    user_subaccount: Option<SubAccount>,
 ) -> Result<u128, String> {
     let arg = AccountBalanceArgs {
         account: AccountIdentifier::new(&user, &user_subaccount.unwrap_or(DEFAULT_SUBACCOUNT)),
@@ -29,9 +29,9 @@ pub async fn icp_balance(
 }
 
 pub async fn icp_transfer(
-    from_subaccount: Option<Subaccount>,
+    from_subAccount: Option<SubAccount>,
     to: Principal,
-    to_subaccount: Option<Subaccount>,
+    to_subAccount: Option<SubAccount>,
     amount: u64,
     memo: Memo,
 ) -> Result<BlockIndex, String> {
@@ -39,8 +39,8 @@ pub async fn icp_transfer(
         memo,
         amount: Tokens::from_e8s(amount),
         fee: DEFAULT_FEE,
-        from_subaccount,
-        to: AccountIdentifier::new(&to, &to_subaccount.unwrap_or(DEFAULT_SUBACCOUNT)),
+        from_subAccount,
+        to: AccountIdentifier::new(&to, &to_subAccount.unwrap_or(DEFAULT_SUBACCOUNT)),
         created_at_time: None,
     };
 
@@ -52,7 +52,7 @@ pub async fn icp_transfer(
 
 pub async fn ndp_balance(
     user: Principal,
-    user_subaccount: Option<Subaccount>,
+    user_subaccount: Option<SubAccount>,
 ) -> Result<u128, String> {
     let ledger = CanisterExtClient::new(String::from("vgqnj-miaaa-aaaal-qaapa-cai"));
 
@@ -72,9 +72,9 @@ pub async fn ndp_balance(
 // Transfer funds on nns ledger
 pub async fn ndp_transfer(
     from: Principal,
-    from_subaccount: Option<Subaccount>,
+    from_subaccount: Option<SubAccount>,
     to: Principal,
-    to_subaccount: Option<Subaccount>,
+    to_subaccount: Option<SubAccount>,
     amount: u128,
     memo: Vec<u8>,
 ) -> Result<BlockIndex, String> {

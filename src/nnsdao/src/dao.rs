@@ -1,12 +1,13 @@
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
-use ic_kit::ic;
-use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, ProposalArg, Votes, VotesArg};
-use serde::Serialize;
+use ic_kit::ic::{self};
+use ic_ledger_types::SubAccount;
+use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Proposal, ProposalArg, Votes, VotesArg};
+use serde::{ser::Error, Serialize};
 use std::collections::HashMap;
 
-use crate::Data;
+use crate::{canister::ledger, Data};
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
@@ -80,9 +81,10 @@ pub struct VoteArg {
     pub ndp_count: u64,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Default, Clone, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
+    proposer_list: Vec<ProposerListItem>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
 }
@@ -95,16 +97,30 @@ impl DaoService {
 
         Ok(true)
     }
-    pub async fn initiate_proposal(&mut self, arg: ProposalArg) -> Result<(), String> {
-        // conditions , user must hold xxx ndp
-        // TODO:
-        let balance = 101;
+    pub async fn initiate_proposal(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
+        // validate balance of subAccount
+        let balance = ledger::ndp_balance(arg.proposer, Some(arg.sub_account)).await;
 
-        if balance > 100 {
-            self.basic.proposal(arg).await?;
-            Ok(())
+        // 1000 ndp
+        let amount: u128 = 1000_0000_0000;
+        if balance < Ok(amount as u128) {
+            Err(String::from("Insufficient funds sent."))
         } else {
-            Err("Your NDP balance is less than the minimum 1000 limit".to_string())
+            let proposal_info = self
+                .basic
+                .proposal(ProposalArg {
+                    proposer: arg.proposer,
+                    title: arg.title,
+                    content: arg.content,
+                    end_time: arg.end_time,
+                })
+                .await?;
+            self.proposer_list.push(ProposerListItem {
+                proposer: arg.proposer,
+                sub_account: arg.sub_account,
+                id: proposal_info.id,
+            });
+            Ok(proposal_info)
         }
     }
     async fn mortgage_ndp(&mut self, count: u64) -> Result<bool, String> {
@@ -183,4 +199,28 @@ impl DaoService {
 
         Ok(true)
     }
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ProposalContent {
+    pub title: String,
+    pub content: String,
+    pub end_time: u64,
+    pub sub_account: SubAccount,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ProposalBody {
+    proposer: Principal,
+    pub title: String,
+    pub content: String,
+    pub end_time: u64,
+    pub sub_account: SubAccount,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct ProposerListItem {
+    proposer: Principal,
+    sub_account: SubAccount,
+    id: u64,
 }

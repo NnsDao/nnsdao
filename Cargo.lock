@@ -884,7 +884,9 @@ name = "nnsdao"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base32",
  "candid",
+ "crc32fast",
  "ic-cdk 0.5.2",
  "ic-cdk-macros 0.5.2",
  "ic-kit",
@@ -897,7 +899,7 @@ dependencies = [
 [[package]]
 name = "nnsdao_sdk_basic"
 version = "0.1.1"
-source = "git+https://github.com/NnsDao/nnsdao_sdk.git?branch=main#3acfc21473cffd9e2ddb7596b2b307c4a4efa8c0"
+source = "git+https://github.com/NnsDao/nnsdao_sdk.git?branch=main#d8c0692958b6201161debfe71f560811ed196a65"
 dependencies = [
  "async-trait",
  "candid",
