@@ -1,4 +1,6 @@
+pub mod canister;
 mod dao;
+mod disburse;
 mod init;
 mod logger;
 mod owner;
@@ -6,14 +8,18 @@ mod tools;
 
 use crate::logger::*;
 use crate::owner::*;
+use canister::ledger;
 use dao::JoinDaoParams;
+use dao::ProposalBody;
+use dao::ProposalContent;
 use dao::UserVoteArgs;
 use dao::{DaoService, MemberItems};
+use disburse::DisburseService;
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
+use ic_ledger_types::AccountIdentifier;
 use nnsdao_sdk_basic::Proposal;
-use nnsdao_sdk_basic::ProposalArg;
 use nnsdao_sdk_basic::VotesArg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -36,6 +42,8 @@ pub struct Data {
     pub heartbeat_last_beat: u64,
     #[serde(default)]
     pub heartbeat_interval_seconds: u64,
+    #[serde(default)]
+    pub disburse: DisburseService,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -48,6 +56,9 @@ pub struct DataV0 {
 
     #[serde(default)]
     pub logger: LoggerService,
+
+    #[serde(default)]
+    pub disburse: DisburseService,
 }
 
 #[update]
@@ -55,8 +66,6 @@ pub struct DataV0 {
 fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
-    dbg!("caller-dbg {}", caller);
-    ic_cdk::println!("caller-ic {}", caller);
     data.dao.join(caller, user_info)
 }
 
@@ -89,12 +98,30 @@ fn proposal_list() -> Result<HashMap<u64, Proposal>, String> {
     Ok(data.dao.basic.proposal_list())
 }
 
+#[query]
+#[candid::candid_method(query)]
+fn get_pay_address() -> Result<String, String> {
+    let data = ic::get_mut::<Data>();
+    let transaction_subaccount = data.disburse.get_transaction_subaccount();
+    let payment_address = AccountIdentifier::new(&ic_cdk::api::id(), &transaction_subaccount);
+    Ok(payment_address.to_string())
+}
+
 #[update]
 #[candid::candid_method]
-async fn initiate_proposal(arg: ProposalArg) -> Result<(), String> {
+async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
     let data = ic::get_mut::<Data>();
-    data.dao.initiate_proposal(arg).await?;
-    Ok(())
+    let proposal = data
+        .dao
+        .initiate_proposal(ProposalBody {
+            proposer: ic_cdk::caller(),
+            title: arg.title,
+            content: arg.content,
+            end_time: arg.end_time,
+            sub_account: arg.sub_account,
+        })
+        .await?;
+    Ok(proposal)
 }
 
 #[query]
@@ -124,6 +151,7 @@ fn pre_upgrade() {
     serde_cbor::to_writer(
         writer,
         &DataV0 {
+            disburse: data.disburse.clone(),
             owners: data.owners.clone(),
             logger: data.logger.clone(),
             dao: data.dao.clone(),
@@ -149,7 +177,7 @@ fn post_upgrade() {
         owners: data.owners,
         logger: data.logger,
         dao: data.dao,
-
+        disburse: data.disburse,
         run_heartbeat: false,
         heartbeat_last_beat: 0,
         heartbeat_interval_seconds: 5,

@@ -1,4 +1,4 @@
-use crate::standard_ext as ext;
+use super::standard_ext as ext;
 use ic_cdk::api::call::CallResult;
 use ic_cdk::export::candid::Principal;
 
