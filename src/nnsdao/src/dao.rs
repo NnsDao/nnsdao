@@ -13,8 +13,10 @@ use crate::{canister::ledger, Data};
 pub struct CustomDao {}
 #[derive(CandidType, Clone, Deserialize, Serialize, Debug)]
 pub struct UserVoteArgs {
+    pub principal: Option<Principal>,
     pub id: u64,
     pub vote: Votes,
+    pub sub_account: Subaccount,
 }
 #[async_trait]
 impl DaoCustomFn for CustomDao {
@@ -85,6 +87,7 @@ pub struct VoteArg {
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
     proposer_list: Vec<ProposerListItem>,
+    votes_list: Vec<UserVoteArgs>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
 }
@@ -123,27 +126,35 @@ impl DaoService {
             Ok(proposal_info)
         }
     }
-    async fn mortgage_ndp(&mut self, count: u64) -> Result<bool, String> {
-        // TODO:
-        // transfer ndp
-        Ok(true)
+    async fn validate_before_vote(&mut self, vote_arg: UserVoteArgs) -> Result<bool, String> {
+        let balance = ledger::ndp_balance(ic_cdk::caller(), Some(vote_arg.sub_account))
+            .await
+            .unwrap();
+
+        let equal = match vote_arg.vote {
+            Votes::Yes(count) | Votes::No(count) => balance == count as u128,
+        };
+        Ok(equal)
     }
     pub fn proposal_list(
         &self,
     ) -> std::collections::hash_map::IntoIter<u64, nnsdao_sdk_basic::Proposal> {
         self.basic.proposal_list().into_iter()
     }
-    pub async fn vote(&mut self, arg: VoteArg) -> Result<(), String> {
-        // mortgage_ndp xxx ndp first
-        self.mortgage_ndp(arg.ndp_count).await?;
-        // TODO:
+    pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
+        let valid = self.validate_before_vote(arg.clone()).await?;
+        if !valid {
+            return Err(String::from("Validate fail,vote failed"));
+        }
+        arg.principal = Some(ic_cdk::caller());
         self.basic
             .vote(VotesArg {
                 id: arg.id,
-                caller: ic::caller(),
-                vote: Votes::Yes(arg.ndp_count),
+                caller: ic_cdk::caller(),
+                vote: arg.vote.clone(),
             })
             .await?;
+        self.votes_list.push(arg);
         Ok(())
     }
 

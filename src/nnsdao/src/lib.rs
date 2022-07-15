@@ -19,7 +19,6 @@ use ic_cdk_macros::*;
 use ic_kit::ic;
 use ic_ledger_types::AccountIdentifier;
 use nnsdao_sdk_basic::Proposal;
-use nnsdao_sdk_basic::VotesArg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
@@ -77,7 +76,7 @@ fn member_list() -> Result<Vec<MemberItems>, String> {
 
 #[query]
 #[candid::candid_method]
-fn user_info() -> std::result::Result<MemberItems, String> {
+fn user_info() -> Result<MemberItems, String> {
     let data = ic::get::<Data>();
     data.dao.user_info(ic_cdk::caller())
 }
@@ -92,7 +91,7 @@ fn quit() -> Result<bool, String> {
 
 #[query]
 #[candid::candid_method(query)]
-fn proposal_list() -> Result<HashMap<u64, Proposal>, String> {
+fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
     let data = ic::get::<Data>();
     Ok(data.dao.basic.proposal_list())
 }
@@ -132,15 +131,9 @@ fn get_proposal(id: u64) -> Result<Proposal, String> {
 
 #[update]
 #[candid::candid_method(update)]
-async fn votes(arg: UserVoteArgs) -> Result<(), String> {
-    let caller = ic::caller();
+async fn vote(arg: UserVoteArgs) -> Result<(), String> {
     let data = ic::get_mut::<Data>();
-    let vote_arg = VotesArg {
-        caller,
-        id: arg.id,
-        vote: arg.vote,
-    };
-    data.dao.basic.vote(vote_arg).await
+    data.dao.vote(arg).await
 }
 
 #[pre_upgrade]
