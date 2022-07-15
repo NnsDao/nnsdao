@@ -29,9 +29,9 @@ pub async fn icp_balance(
 }
 
 pub async fn icp_transfer(
-    from_subAccount: Option<SubAccount>,
+    from_sub_account: Option<SubAccount>,
     to: Principal,
-    to_subAccount: Option<SubAccount>,
+    to_sub_account: Option<SubAccount>,
     amount: u64,
     memo: Memo,
 ) -> Result<BlockIndex, String> {
@@ -39,8 +39,8 @@ pub async fn icp_transfer(
         memo,
         amount: Tokens::from_e8s(amount),
         fee: DEFAULT_FEE,
-        from_subAccount,
-        to: AccountIdentifier::new(&to, &to_subAccount.unwrap_or(DEFAULT_SUBACCOUNT)),
+        from_subAccount: from_sub_account,
+        to: AccountIdentifier::new(&to, &to_sub_account.unwrap_or(DEFAULT_SUBACCOUNT)),
         created_at_time: None,
     };
 
