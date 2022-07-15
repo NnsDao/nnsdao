@@ -4,7 +4,7 @@ use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
 use ic_ledger_types::SubAccount;
 use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Proposal, ProposalArg, Votes, VotesArg};
-use serde::{ser::Error, Serialize};
+use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::{canister::ledger, Data};
@@ -81,7 +81,7 @@ pub struct VoteArg {
     pub ndp_count: u64,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Default, Clone, Debug)]
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
     proposer_list: Vec<ProposerListItem>,
@@ -211,7 +211,7 @@ pub struct ProposalContent {
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct ProposalBody {
-    proposer: Principal,
+    pub proposer: Principal,
     pub title: String,
     pub content: String,
     pub end_time: u64,
