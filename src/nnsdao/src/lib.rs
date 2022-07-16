@@ -136,6 +136,28 @@ async fn vote(arg: UserVoteArgs) -> Result<(), String> {
     data.dao.vote(arg).await
 }
 
+// heartbeat: 5s
+// try settle: 15s
+// handle disbursements: 5s
+#[heartbeat]
+async fn heartbeat() {
+    let data = ic::get_mut::<Data>();
+    if !data.run_heartbeat {
+        return;
+    }
+
+    // Limit heartbeats
+    let now = ic_cdk::api::time();
+    if now - data.heartbeat_last_beat < data.heartbeat_interval_seconds * 1_000_000_000 {
+        return;
+    }
+    data.heartbeat_last_beat = now;
+    data.dao.check_proposal();
+    // check proposal expire time
+
+    // ic_cdk::println!("check proposal expire time : {:?}",'');
+}
+
 #[pre_upgrade]
 fn pre_upgrade() {
     let data = ic::get::<Data>();

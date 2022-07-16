@@ -141,6 +141,9 @@ impl DaoService {
     ) -> std::collections::hash_map::IntoIter<u64, nnsdao_sdk_basic::Proposal> {
         self.basic.proposal_list().into_iter()
     }
+    pub async fn check_proposal(&mut self) -> Result<(), String> {
+        Ok(())
+    }
     pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
         let valid = self.validate_before_vote(arg.clone()).await?;
         if !valid {
