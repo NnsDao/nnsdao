@@ -1,18 +1,22 @@
+use crate::{
+    canister::{self, dip20, ledger},
+    Data,
+};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
 use ic_ledger_types::Subaccount;
 use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Proposal, ProposalArg, Votes, VotesArg};
+use num_bigint::{BigInt, BigUint, ToBigInt, ToBigUint};
 use serde::Serialize;
 use std::collections::HashMap;
-
-use crate::{canister::ledger, Data};
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
 #[derive(CandidType, Clone, Deserialize, Serialize, Debug)]
 pub struct UserVoteArgs {
+    pub principal: Option<Principal>,
     pub id: u64,
     pub vote: Votes,
 }
@@ -85,6 +89,7 @@ pub struct VoteArg {
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
     proposer_list: Vec<ProposerListItem>,
+    votes_list: Vec<UserVoteArgs>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
 }
@@ -98,14 +103,30 @@ impl DaoService {
         Ok(true)
     }
     pub async fn initiate_proposal(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
-        // validate balance of subAccount
-        let balance = ledger::ndp_balance(arg.proposer, Some(arg.sub_account)).await;
+        // check balance
+        // let caller = ic_cdk::caller();
+        let dip_client = dip20::Service::new(arg.proposer);
+        let balance = dip_client.balanceOf(arg.proposer).await.unwrap();
 
         // 1000 ndp
-        let amount: u128 = 1000_0000_0000;
-        if balance < Ok(amount as u128) {
+        let amount: i64 = 1000_0000_0000;
+        let amount = candid::Nat((amount).to_biguint().unwrap());
+        if balance.0 < amount {
             Err(String::from("Insufficient funds sent."))
         } else {
+            // approve
+            let approved = dip_client.approve(arg.proposer, amount.clone()).await;
+            if let Err(_str) = approved {
+                return Err("Approve failed".to_string());
+            }
+            // transfer
+            let transfer = dip_client
+                .transfer_token(arg.proposer, amount.clone())
+                .await;
+            if let Err(_str) = transfer {
+                return Err("Transfer failed!".to_string());
+            }
+
             let proposal_info = self
                 .basic
                 .proposal(ProposalArg {
@@ -117,15 +138,46 @@ impl DaoService {
                 .await?;
             self.proposer_list.push(ProposerListItem {
                 proposer: arg.proposer,
-                sub_account: arg.sub_account,
                 id: proposal_info.id,
             });
             Ok(proposal_info)
         }
     }
-    async fn mortgage_ndp(&mut self, count: u64) -> Result<bool, String> {
-        // TODO:
-        // transfer ndp
+    async fn validate_before_vote(&mut self, mut vote_arg: UserVoteArgs) -> Result<bool, String> {
+        // check balance
+        let caller = ic_cdk::caller();
+        vote_arg.principal = Some(caller);
+        let dip_client = dip20::Service::new(caller);
+        let balance = dip_client.balanceOf(caller).await.unwrap();
+
+        // 100 ndp
+        let amount: i64 = 100_0000_0000;
+        let amount = integer_to_nat(amount);
+
+        let has_enough_balance = match vote_arg.vote {
+            Votes::Yes(count) | Votes::No(count) => {
+                balance.0 >= candid::Nat((count).to_biguint().unwrap())
+            }
+        };
+        if balance.0 < amount || !has_enough_balance {
+            return Err(String::from("Insufficient balance"));
+        }
+
+        // approve
+
+        let amount = match vote_arg.vote {
+            Votes::Yes(num) => integer_to_nat(num as i64),
+            Votes::No(num) => integer_to_nat(num as i64),
+        };
+        let approved = dip_client.approve(caller, amount.clone()).await;
+        if let Err(_str) = approved {
+            return Err("Approve failed".to_string());
+        }
+        // transfer
+        let transfer = dip_client.transfer_token(caller, amount.clone()).await;
+        if let Err(_str) = transfer {
+            return Err("Transfer failed!".to_string());
+        }
         Ok(true)
     }
     pub fn proposal_list(
@@ -133,17 +185,37 @@ impl DaoService {
     ) -> std::collections::hash_map::IntoIter<u64, nnsdao_sdk_basic::Proposal> {
         self.basic.proposal_list().into_iter()
     }
-    pub async fn vote(&mut self, arg: VoteArg) -> Result<(), String> {
-        // mortgage_ndp xxx ndp first
-        self.mortgage_ndp(arg.ndp_count).await?;
-        // TODO:
+    pub async fn check_proposal(&mut self) -> Result<(), String> {
+        let now = ic_cdk::api::time();
+        self.basic.proposal_list.iter().for_each(|(_id, proposal)| {
+            if now >= proposal.end_time {
+                // caculate,then change proposal state
+                //
+                //
+                // if 1 > 0 {
+                //     //
+                // } else {
+                //     //
+                // }
+                // Ok(())
+            }
+        });
+        Ok(())
+    }
+    pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
+        let valid = self.validate_before_vote(arg.clone()).await?;
+        if !valid {
+            return Err(String::from("Validate fail,vote failed"));
+        }
+        arg.principal = Some(ic_cdk::caller());
         self.basic
             .vote(VotesArg {
                 id: arg.id,
-                caller: ic::caller(),
-                vote: Votes::Yes(arg.ndp_count),
+                caller: ic_cdk::caller(),
+                vote: arg.vote.clone(),
             })
             .await?;
+        self.votes_list.push(arg);
         Ok(())
     }
 
@@ -201,12 +273,15 @@ impl DaoService {
     }
 }
 
+fn integer_to_nat(amount: i64) -> candid::Nat {
+    candid::Nat((amount).to_biguint().unwrap())
+}
+
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct ProposalContent {
     pub title: String,
     pub content: String,
     pub end_time: u64,
-    pub sub_account: Subaccount,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -215,12 +290,10 @@ pub struct ProposalBody {
     pub title: String,
     pub content: String,
     pub end_time: u64,
-    pub sub_account: Subaccount,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct ProposerListItem {
     proposer: Principal,
-    sub_account: Subaccount,
     id: u64,
 }

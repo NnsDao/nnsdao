@@ -1,4 +1,4 @@
-pub mod canister;
+mod canister;
 mod dao;
 mod disburse;
 mod init;
@@ -17,9 +17,7 @@ use disburse::DisburseService;
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
-use ic_ledger_types::AccountIdentifier;
 use nnsdao_sdk_basic::Proposal;
-use nnsdao_sdk_basic::VotesArg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
@@ -77,7 +75,7 @@ fn member_list() -> Result<Vec<MemberItems>, String> {
 
 #[query]
 #[candid::candid_method]
-fn user_info() -> std::result::Result<MemberItems, String> {
+fn user_info() -> Result<MemberItems, String> {
     let data = ic::get::<Data>();
     data.dao.user_info(ic_cdk::caller())
 }
@@ -92,24 +90,25 @@ fn quit() -> Result<bool, String> {
 
 #[query]
 #[candid::candid_method(query)]
-fn proposal_list() -> Result<HashMap<u64, Proposal>, String> {
+fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
     let data = ic::get::<Data>();
     Ok(data.dao.basic.proposal_list())
 }
 
-#[query]
-#[candid::candid_method(query)]
-fn get_pay_address() -> Result<String, String> {
-    let data = ic::get_mut::<Data>();
-    let transaction_subaccount = data.disburse.get_transaction_subaccount();
-    let payment_address = AccountIdentifier::new(&ic_cdk::api::id(), &transaction_subaccount);
-    Ok(payment_address.to_string())
-}
+// #[query]
+// #[candid::candid_method(query)]
+// fn get_pay_address() -> Result<String, String> {
+//     let data = ic::get_mut::<Data>();
+//     let transaction_subaccount = data.disburse.get_transaction_subaccount();
+//     let payment_address = AccountIdentifier::new(&ic_cdk::api::id(), &transaction_subaccount);
+//     Ok(payment_address.to_string())
+// }
 
 #[update]
 #[candid::candid_method]
 async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
     let data = ic::get_mut::<Data>();
+
     let proposal = data
         .dao
         .initiate_proposal(ProposalBody {
@@ -117,7 +116,6 @@ async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
             title: arg.title,
             content: arg.content,
             end_time: arg.end_time,
-            sub_account: arg.sub_account,
         })
         .await?;
     Ok(proposal)
@@ -132,15 +130,29 @@ fn get_proposal(id: u64) -> Result<Proposal, String> {
 
 #[update]
 #[candid::candid_method(update)]
-async fn votes(arg: UserVoteArgs) -> Result<(), String> {
-    let caller = ic::caller();
+async fn vote(arg: UserVoteArgs) -> Result<(), String> {
     let data = ic::get_mut::<Data>();
-    let vote_arg = VotesArg {
-        caller,
-        id: arg.id,
-        vote: arg.vote,
-    };
-    data.dao.basic.vote(vote_arg).await
+    data.dao.vote(arg).await
+}
+
+// heartbeat: 5s
+#[heartbeat]
+async fn heartbeat() {
+    let data = ic::get_mut::<Data>();
+    if !data.run_heartbeat {
+        return;
+    }
+
+    // Limit heartbeats
+    let now = ic_cdk::api::time();
+    if now - data.heartbeat_last_beat < data.heartbeat_interval_seconds * 1_000_000_000 {
+        return;
+    }
+    data.heartbeat_last_beat = now;
+    data.dao.check_proposal();
+    // check proposal expire time
+
+    // ic_cdk::println!("check proposal expire time : {:?}",'');
 }
 
 #[pre_upgrade]
