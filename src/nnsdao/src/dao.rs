@@ -105,7 +105,8 @@ impl DaoService {
     pub async fn initiate_proposal(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
         // check balance
         // let caller = ic_cdk::caller();
-        let dip_client = dip20::Service::new(arg.proposer);
+        let dip_client =
+            dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
         let balance = dip_client.balanceOf(arg.proposer).await.unwrap();
 
         // 1000 ndp
