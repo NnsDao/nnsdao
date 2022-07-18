@@ -3,7 +3,7 @@ use ic_cdk::api::call::CallResult;
 use ic_cdk::export::candid::{self, CandidType, Deserialize};
 
 #[derive(CandidType, Deserialize)]
-enum TxError {
+pub enum TxError {
     InsufficientAllowance,
     InsufficientBalance,
     ErrorOperationStyle,

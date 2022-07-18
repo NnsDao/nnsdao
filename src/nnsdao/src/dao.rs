@@ -19,7 +19,6 @@ pub struct UserVoteArgs {
     pub principal: Option<Principal>,
     pub id: u64,
     pub vote: Votes,
-    pub sub_account: Subaccount,
 }
 #[async_trait]
 impl DaoCustomFn for CustomDao {
@@ -144,15 +143,42 @@ impl DaoService {
             Ok(proposal_info)
         }
     }
-    async fn validate_before_vote(&mut self, vote_arg: UserVoteArgs) -> Result<bool, String> {
-        let balance = ledger::ndp_balance(ic_cdk::caller(), Some(vote_arg.sub_account))
-            .await
-            .unwrap();
+    async fn validate_before_vote(&mut self, mut vote_arg: UserVoteArgs) -> Result<bool, String> {
+        // check balance
+        let caller = ic_cdk::caller();
+        vote_arg.principal = Some(caller);
+        let dip_client = dip20::Service::new(caller);
+        let balance = dip_client.balanceOf(caller).await.unwrap();
 
-        let equal = match vote_arg.vote {
-            Votes::Yes(count) | Votes::No(count) => balance == count as u128,
+        // 100 ndp
+        let amount: i64 = 100_0000_0000;
+        let amount = integer_to_nat(amount);
+
+        let has_enough_balance = match vote_arg.vote {
+            Votes::Yes(count) | Votes::No(count) => {
+                balance.0 >= candid::Nat((count).to_biguint().unwrap())
+            }
         };
-        Ok(equal)
+        if balance.0 < amount || !has_enough_balance {
+            return Err(String::from("Insufficient balance"));
+        }
+
+        // approve
+
+        let amount = match vote_arg.vote {
+            Votes::Yes(num) => integer_to_nat(num as i64),
+            Votes::No(num) => integer_to_nat(num as i64),
+        };
+        let approved = dip_client.approve(caller, amount.clone()).await;
+        if let Err(_str) = approved {
+            return Err("Approve failed".to_string());
+        }
+        // transfer
+        let transfer = dip_client.transfer_token(caller, amount.clone()).await;
+        if let Err(_str) = transfer {
+            return Err("Transfer failed!".to_string());
+        }
+        Ok(true)
     }
     pub fn proposal_list(
         &self,
@@ -245,6 +271,10 @@ impl DaoService {
 
         Ok(true)
     }
+}
+
+fn integer_to_nat(amount: i64) -> candid::Nat {
+    candid::Nat((amount).to_biguint().unwrap())
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
