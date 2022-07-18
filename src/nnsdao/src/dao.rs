@@ -1,13 +1,16 @@
+use crate::{
+    canister::{self, dip20, ledger},
+    Data,
+};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
 use ic_ledger_types::Subaccount;
 use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Proposal, ProposalArg, Votes, VotesArg};
+use num_bigint::{BigInt, BigUint, ToBigInt, ToBigUint};
 use serde::Serialize;
 use std::collections::HashMap;
-
-use crate::{canister::ledger, Data};
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
@@ -101,14 +104,30 @@ impl DaoService {
         Ok(true)
     }
     pub async fn initiate_proposal(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
-        // validate balance of subAccount
-        let balance = ledger::ndp_balance(arg.proposer, Some(arg.sub_account)).await;
+        // check balance
+        // let caller = ic_cdk::caller();
+        let dip_client = dip20::Service::new(arg.proposer);
+        let balance = dip_client.balanceOf(arg.proposer).await.unwrap();
 
         // 1000 ndp
-        let amount: u128 = 1000_0000_0000;
-        if balance < Ok(amount as u128) {
+        let amount: i64 = 1000_0000_0000;
+        let amount = candid::Nat((amount).to_biguint().unwrap());
+        if balance.0 < amount {
             Err(String::from("Insufficient funds sent."))
         } else {
+            // approve
+            let approved = dip_client.approve(arg.proposer, amount.clone()).await;
+            if let Err(_str) = approved {
+                return Err("Approve failed".to_string());
+            }
+            // transfer
+            let transfer = dip_client
+                .transfer_token(arg.proposer, amount.clone())
+                .await;
+            if let Err(_str) = transfer {
+                return Err("Transfer failed!".to_string());
+            }
+
             let proposal_info = self
                 .basic
                 .proposal(ProposalArg {
@@ -120,7 +139,6 @@ impl DaoService {
                 .await?;
             self.proposer_list.push(ProposerListItem {
                 proposer: arg.proposer,
-                sub_account: arg.sub_account,
                 id: proposal_info.id,
             });
             Ok(proposal_info)
@@ -142,6 +160,20 @@ impl DaoService {
         self.basic.proposal_list().into_iter()
     }
     pub async fn check_proposal(&mut self) -> Result<(), String> {
+        let now = ic_cdk::api::time();
+        self.basic.proposal_list.iter().for_each(|(_id, proposal)| {
+            if now >= proposal.end_time {
+                // caculate,then change proposal state
+                //
+                //
+                // if 1 > 0 {
+                //     //
+                // } else {
+                //     //
+                // }
+                // Ok(())
+            }
+        });
         Ok(())
     }
     pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
@@ -220,7 +252,6 @@ pub struct ProposalContent {
     pub title: String,
     pub content: String,
     pub end_time: u64,
-    pub sub_account: Subaccount,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -229,12 +260,10 @@ pub struct ProposalBody {
     pub title: String,
     pub content: String,
     pub end_time: u64,
-    pub sub_account: Subaccount,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct ProposerListItem {
     proposer: Principal,
-    sub_account: Subaccount,
     id: u64,
 }

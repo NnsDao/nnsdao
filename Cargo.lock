@@ -942,6 +942,7 @@ dependencies = [
  "ic-kit",
  "ic-ledger-types",
  "nnsdao_sdk_basic",
+ "num-bigint",
  "serde",
  "serde_cbor",
 ]

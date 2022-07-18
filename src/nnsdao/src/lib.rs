@@ -1,4 +1,4 @@
-pub mod canister;
+mod canister;
 mod dao;
 mod disburse;
 mod init;
@@ -17,7 +17,6 @@ use disburse::DisburseService;
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
-use ic_ledger_types::AccountIdentifier;
 use nnsdao_sdk_basic::Proposal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -96,19 +95,20 @@ fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
     Ok(data.dao.basic.proposal_list())
 }
 
-#[query]
-#[candid::candid_method(query)]
-fn get_pay_address() -> Result<String, String> {
-    let data = ic::get_mut::<Data>();
-    let transaction_subaccount = data.disburse.get_transaction_subaccount();
-    let payment_address = AccountIdentifier::new(&ic_cdk::api::id(), &transaction_subaccount);
-    Ok(payment_address.to_string())
-}
+// #[query]
+// #[candid::candid_method(query)]
+// fn get_pay_address() -> Result<String, String> {
+//     let data = ic::get_mut::<Data>();
+//     let transaction_subaccount = data.disburse.get_transaction_subaccount();
+//     let payment_address = AccountIdentifier::new(&ic_cdk::api::id(), &transaction_subaccount);
+//     Ok(payment_address.to_string())
+// }
 
 #[update]
 #[candid::candid_method]
 async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
     let data = ic::get_mut::<Data>();
+
     let proposal = data
         .dao
         .initiate_proposal(ProposalBody {
@@ -116,7 +116,6 @@ async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
             title: arg.title,
             content: arg.content,
             end_time: arg.end_time,
-            sub_account: arg.sub_account,
         })
         .await?;
     Ok(proposal)
@@ -137,8 +136,6 @@ async fn vote(arg: UserVoteArgs) -> Result<(), String> {
 }
 
 // heartbeat: 5s
-// try settle: 15s
-// handle disbursements: 5s
 #[heartbeat]
 async fn heartbeat() {
     let data = ic::get_mut::<Data>();
