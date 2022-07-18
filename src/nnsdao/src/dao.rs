@@ -88,7 +88,7 @@ pub struct VoteArg {
 #[derive(CandidType, Serialize, Deserialize, Default, Clone, Debug)]
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
-    proposer_list: Vec<ProposerListItem>,
+    // proposer_list: Vec<ProposerListItem>,
     votes_list: Vec<UserVoteArgs>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
@@ -110,19 +110,39 @@ impl DaoService {
         let balance = dip_client.balanceOf(arg.proposer).await.unwrap();
 
         // 1000 ndp
-        let amount: i64 = 1000_0000_0000;
+        let amount: i64 = 1_0000_0000;
         let amount = candid::Nat((amount).to_biguint().unwrap());
         if balance.0 < amount {
             Err(String::from("Insufficient funds sent."))
         } else {
             // approve
-            let approved = dip_client.approve(arg.proposer, amount.clone()).await;
+            let approved = dip_client
+                .approve(
+                    Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap(),
+                    amount.clone(),
+                )
+                .await;
             if let Err(_str) = approved {
                 return Err("Approve failed".to_string());
             }
+
+            let allow = dip_client
+                .allowance(
+                    arg.proposer,
+                    Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap(),
+                )
+                .await
+                .unwrap();
+            if allow.0 != amount {
+                return Err("Approved insufficient NDP count".to_string());
+            }
             // transfer
             let transfer = dip_client
-                .transfer_token(arg.proposer, amount.clone())
+                .transferFrom(
+                    arg.proposer,
+                    Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap(),
+                    amount.clone(),
+                )
                 .await;
             if let Err(_str) = transfer {
                 return Err("Transfer failed!".to_string());
@@ -137,10 +157,10 @@ impl DaoService {
                     end_time: arg.end_time,
                 })
                 .await?;
-            self.proposer_list.push(ProposerListItem {
-                proposer: arg.proposer,
-                id: proposal_info.id,
-            });
+            // self.proposer_list.push(ProposerListItem {
+            //     proposer: arg.proposer,
+            //     id: proposal_info.id,
+            // });
             Ok(proposal_info)
         }
     }
