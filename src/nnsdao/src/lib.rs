@@ -95,6 +95,22 @@ fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
     Ok(data.dao.basic.proposal_list())
 }
 
+// #[update]
+// #[candid::candid_method]
+// async fn get_allow() -> Result<
+//     (
+//         (String),
+//         (candid::Nat,),
+//         (canister::dip20::Result,),
+//         (candid::Nat,),
+//         candid::Nat,
+//     ),
+//     String,
+// > {
+//     let data = ic::get::<Data>();
+//     data.dao.get_allow().await
+// }
+
 // #[query]
 // #[candid::candid_method(query)]
 // fn get_pay_address() -> Result<String, String> {
@@ -109,16 +125,14 @@ fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
 async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
     let data = ic::get_mut::<Data>();
 
-    let proposal = data
-        .dao
+    data.dao
         .initiate_proposal(ProposalBody {
             proposer: ic_cdk::caller(),
             title: arg.title,
             content: arg.content,
             end_time: arg.end_time,
         })
-        .await?;
-    Ok(proposal)
+        .await
 }
 
 #[query]

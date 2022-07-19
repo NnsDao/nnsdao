@@ -109,51 +109,52 @@ impl DaoService {
             dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
         let balance = dip_client.balanceOf(arg.proposer).await.unwrap();
         let dao_principal = Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap();
+
         // 1 ndp
         let amount: i64 = 1;
         let amount = candid::Nat((amount).to_biguint().unwrap());
         if balance.0 < amount {
-            Err(String::from("Insufficient balance!"))
-        } else {
-            // approve
-            let approved = dip_client.approve(dao_principal, amount.clone()).await;
-            if let Err(_str) = approved {
-                return Err("Approve failed".to_string());
-            }
-            // ic_cdk::println!("approved {:#?}", approved);
-            let allow = dip_client
-                .allowance(arg.proposer, dao_principal)
-                .await
-                .unwrap();
-            ic_cdk::println!("allow {:#?}", allow);
-            if allow.0 < amount {
-                return Err("Approved insufficient NDP count".to_string());
-            }
-            // transfer
-            let transfer = dip_client
-                .transferFrom(arg.proposer, dao_principal, amount.clone())
-                .await;
-
-            // ic_cdk::println!("transfer {:#?}", transfer);
-            if let Err(_str) = transfer {
-                return Err("Transfer failed!".to_string());
-            }
-
-            let proposal_info = self
-                .basic
-                .proposal(ProposalArg {
-                    proposer: arg.proposer,
-                    title: arg.title,
-                    content: arg.content,
-                    end_time: arg.end_time,
-                })
-                .await?;
-            // self.proposer_list.push(ProposerListItem {
-            //     proposer: arg.proposer,
-            //     id: proposal_info.id,
-            // });
-            Ok(proposal_info)
+            return Err(String::from("Insufficient balance!"));
         }
+        // // approve
+        // let approved = dip_client.approve(dao_principal, amount.clone()).await;
+        // if let Err(_str) = approved {
+        //     return Err("Approve failed".to_string());
+        // }
+        // ic_cdk::println!("approved {:#?}", approved);
+
+        let allow = dip_client
+            .allowance(arg.proposer, dao_principal)
+            .await
+            .unwrap();
+
+        if allow.0 < amount {
+            return Err("Approved insufficient NDP count".to_string());
+        }
+        // transfer
+        let transfer = dip_client
+            .transferFrom(arg.proposer, dao_principal, amount.clone())
+            .await;
+
+        // ic_cdk::println!("transfer {:#?}", transfer);
+        if let Err(_str) = transfer {
+            return Err("Transfer failed!".to_string());
+        }
+
+        let proposal_info = self
+            .basic
+            .proposal(ProposalArg {
+                proposer: arg.proposer,
+                title: arg.title,
+                content: arg.content,
+                end_time: arg.end_time,
+            })
+            .await?;
+        // self.proposer_list.push(ProposerListItem {
+        //     proposer: arg.proposer,
+        //     id: proposal_info.id,
+        // });
+        Ok(proposal_info)
     }
     async fn validate_before_vote(&mut self, mut vote_arg: UserVoteArgs) -> Result<bool, String> {
         // check balance
@@ -161,9 +162,9 @@ impl DaoService {
         vote_arg.principal = Some(caller);
         let dip_client = dip20::Service::new(caller);
         let balance = dip_client.balanceOf(caller).await.unwrap();
-
-        // 100 ndp
-        let amount: i64 = 100_0000_0000;
+        let dao_principal = Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap();
+        // 1 ndp
+        let amount: i64 = 1_0000_0000;
         let amount = integer_to_nat(amount);
 
         let has_enough_balance = match vote_arg.vote {
@@ -174,22 +175,27 @@ impl DaoService {
         if balance.0 < amount || !has_enough_balance {
             return Err(String::from("Insufficient balance"));
         }
-
-        // approve
-
+        // caculate weight
         let amount = match vote_arg.vote {
             Votes::Yes(num) => integer_to_nat(num as i64),
             Votes::No(num) => integer_to_nat(num as i64),
         };
-        let approved = dip_client.approve(caller, amount.clone()).await;
-        if let Err(_str) = approved {
-            return Err("Approve failed".to_string());
+
+        let allow = dip_client.allowance(caller, dao_principal).await.unwrap();
+
+        if allow.0 < amount {
+            return Err("Approved insufficient NDP count".to_string());
         }
         // transfer
-        let transfer = dip_client.transfer_token(caller, amount.clone()).await;
+        let transfer = dip_client
+            .transferFrom(caller, dao_principal, amount.clone())
+            .await;
+
+        // ic_cdk::println!("transfer {:#?}", transfer);
         if let Err(_str) = transfer {
             return Err("Transfer failed!".to_string());
         }
+
         Ok(true)
     }
     pub fn proposal_list(
@@ -246,7 +252,6 @@ impl DaoService {
     pub fn member_list(&self) -> Result<Vec<MemberItems>, String> {
         Ok(self.member_list.values().cloned().collect())
     }
-
     pub fn join(
         &mut self,
         principal: Principal,
