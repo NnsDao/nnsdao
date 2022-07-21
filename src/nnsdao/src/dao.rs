@@ -1,16 +1,15 @@
-use crate::{
-    canister::{self, dip20, ledger},
-    Data,
-};
+use crate::{canister::dip20, Data};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
-use ic_ledger_types::Subaccount;
-use nnsdao_sdk_basic::{DaoBasic, DaoCustomFn, Proposal, ProposalArg, Votes, VotesArg};
-use num_bigint::{BigInt, BigUint, ToBigInt, ToBigUint};
+use nnsdao_sdk_basic::{
+    ChangeProposalStateArg, DaoBasic, DaoCustomFn, Proposal, ProposalArg, ProposalState, Votes,
+    VotesArg,
+};
+use num_bigint::ToBigUint;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, option::Option::Some};
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
@@ -89,7 +88,7 @@ pub struct VoteArg {
 pub struct DaoService {
     member_list: HashMap<Principal, MemberItems>,
     // proposer_list: Vec<ProposerListItem>,
-    votes_list: Vec<UserVoteArgs>,
+    // votes_list: Vec<UserVoteArgs>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
 }
@@ -157,12 +156,27 @@ impl DaoService {
         Ok(proposal_info)
     }
     async fn validate_before_vote(&mut self, mut vote_arg: UserVoteArgs) -> Result<bool, String> {
+        // owner can not vote for self;
+        let proposal_info = if let Ok(proposal) = self.basic.get_proposal(vote_arg.id) {
+            proposal
+        } else {
+            return Err("Failed to get proposal information".to_string());
+        };
+        match vote_arg.principal {
+            Some(principal) => {
+                if principal == proposal_info.proposer {
+                    return Err("You can't vote for yourself!".to_string());
+                }
+            }
+            None => (),
+        }
         // check balance
         let caller = ic_cdk::caller();
         vote_arg.principal = Some(caller);
-        let dip_client = dip20::Service::new(caller);
-        let balance = dip_client.balanceOf(caller).await.unwrap();
+        let dip_client =
+            dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
         let dao_principal = Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap();
+        let balance = dip_client.balanceOf(caller).await.unwrap();
         // 1 ndp
         let amount: i64 = 1_0000_0000;
         let amount = integer_to_nat(amount);
@@ -203,22 +217,92 @@ impl DaoService {
     ) -> std::collections::hash_map::IntoIter<u64, nnsdao_sdk_basic::Proposal> {
         self.basic.proposal_list().into_iter()
     }
-    pub async fn check_proposal(&mut self) -> Result<(), String> {
+    pub async fn check_proposal(&mut self) {
         let now = ic_cdk::api::time();
-        self.basic.proposal_list.iter().for_each(|(_id, proposal)| {
+        let dip_client =
+            dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
+
+        for (id, proposal) in (self.basic.proposal_list.clone()).iter() {
             if now >= proposal.end_time {
-                // caculate,then change proposal state
-                //
-                //
-                // if 1 > 0 {
-                //     //
-                // } else {
-                //     //
-                // }
-                // Ok(())
+                // caculate weight
+                let mut yes = 0;
+                let mut yes_count = 0;
+                let mut no = 0;
+                let mut no_count = 0;
+                for vote in &proposal.vote_data {
+                    match vote.1 {
+                        Votes::Yes(count) => {
+                            yes += count;
+                            yes_count += 1
+                        }
+                        Votes::No(count) => {
+                            no += count;
+                            no_count += 1;
+                        }
+                    }
+                }
+                // reward yes
+                if yes > no {
+                    // return proposer ndp;
+                    let proposal_amount = 1;
+                    // Divide equally left ndp
+                    let per_count = no / (no_count + 1);
+                    match dip_client
+                        .transfer_token(
+                            proposal.proposer,
+                            candid::Nat((proposal_amount + per_count).to_biguint().unwrap()),
+                        )
+                        .await
+                    {
+                        Ok(_) | Err(_) => (),
+                    };
+
+                    for vote in &proposal.vote_data {
+                        match vote.1 {
+                            Votes::Yes(count) => {
+                                match dip_client
+                                    .transfer_token(
+                                        vote.0,
+                                        candid::Nat((per_count + count).to_biguint().unwrap()),
+                                    )
+                                    .await
+                                {
+                                    Ok(_) | Err(_) => (),
+                                };
+                            }
+                            Votes::No(_count) => (),
+                        }
+                    }
+                } else {
+                    // give back no
+                    // let per_count = yes / yes_count;
+                    for vote in &proposal.vote_data {
+                        match vote.1 {
+                            Votes::Yes(_count) => {}
+                            Votes::No(count) => {
+                                match dip_client
+                                    .transfer_token(
+                                        vote.0,
+                                        candid::Nat((count).to_biguint().unwrap()),
+                                    )
+                                    .await
+                                {
+                                    Ok(_) | Err(_) => (),
+                                };
+                            }
+                        }
+                    }
+                }
+                if let Ok(_) = self.basic.change_proposal_state(ChangeProposalStateArg {
+                    id: *id,
+                    state: if yes > no {
+                        ProposalState::Succeeded
+                    } else {
+                        ProposalState::Failed("No more than 50% positive votes!".to_string())
+                    },
+                }) {};
             }
-        });
-        Ok(())
+        }
     }
     pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
         let valid = self.validate_before_vote(arg.clone()).await?;
@@ -233,7 +317,7 @@ impl DaoService {
                 vote: arg.vote.clone(),
             })
             .await?;
-        self.votes_list.push(arg);
+        // self.votes_list.push(arg);
         Ok(())
     }
 

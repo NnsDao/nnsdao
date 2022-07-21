@@ -149,7 +149,7 @@ async fn vote(arg: UserVoteArgs) -> Result<(), String> {
     data.dao.vote(arg).await
 }
 
-// heartbeat: 5s
+// heartbeat: 1s
 #[heartbeat]
 async fn heartbeat() {
     let data = ic::get_mut::<Data>();
@@ -163,7 +163,7 @@ async fn heartbeat() {
         return;
     }
     data.heartbeat_last_beat = now;
-    data.dao.check_proposal();
+    data.dao.check_proposal().await;
     // check proposal expire time
 
     // ic_cdk::println!("check proposal expire time : {:?}",'');
@@ -205,7 +205,7 @@ fn post_upgrade() {
         disburse: data.disburse,
         run_heartbeat: false,
         heartbeat_last_beat: 0,
-        heartbeat_interval_seconds: 5,
+        heartbeat_interval_seconds: 2,
     });
 }
 
