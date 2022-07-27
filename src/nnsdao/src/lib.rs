@@ -122,11 +122,11 @@ fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
 
 #[update]
 #[candid::candid_method]
-async fn initiate_proposal(arg: ProposalContent) -> Result<Proposal, String> {
+async fn propose(arg: ProposalContent) -> Result<Proposal, String> {
     let data = ic::get_mut::<Data>();
 
     data.dao
-        .initiate_proposal(ProposalBody {
+        .propose(ProposalBody {
             proposer: ic_cdk::caller(),
             title: arg.title,
             content: arg.content,

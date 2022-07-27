@@ -101,7 +101,7 @@ impl DaoService {
 
         Ok(true)
     }
-    pub async fn initiate_proposal(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
+    pub async fn propose(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
         // check balance
         // let caller = ic_cdk::caller();
         let dip_client =
