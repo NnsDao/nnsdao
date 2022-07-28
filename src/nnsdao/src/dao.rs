@@ -1,7 +1,7 @@
 use crate::{canister::dip20, Data};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
-use ic_cdk::export::Principal;
+use ic_cdk::{api::call, export::Principal};
 use ic_kit::ic::{self};
 use nnsdao_sdk_basic::{
     ChangeProposalStateArg, DaoBasic, DaoCustomFn, Proposal, ProposalArg, ProposalState, Votes,
@@ -155,7 +155,7 @@ impl DaoService {
         // });
         Ok(proposal_info)
     }
-    async fn validate_before_vote(&mut self, mut vote_arg: UserVoteArgs) -> Result<bool, String> {
+    async fn validate_before_vote(&mut self, vote_arg: UserVoteArgs) -> Result<bool, String> {
         // owner can not vote for self;
         let proposal_info = if let Ok(proposal) = self.basic.get_proposal(vote_arg.id) {
             proposal
@@ -170,13 +170,15 @@ impl DaoService {
             }
             None => (),
         }
-        // check balance
         let caller = ic_cdk::caller();
-        vote_arg.principal = Some(caller);
+        // check balance
         let dip_client =
             dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
         let dao_principal = Principal::from_text("67bzx-5iaaa-aaaam-aah5a-cai").unwrap();
-        let balance = dip_client.balanceOf(caller).await.unwrap();
+        let balance = dip_client
+            .balanceOf(vote_arg.principal.unwrap())
+            .await
+            .unwrap();
         // 1 ndp
         let amount: i64 = 1_0000_0000;
         let amount = integer_to_nat(amount);
@@ -305,16 +307,17 @@ impl DaoService {
         }
     }
     pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
+        let caller = ic_cdk::caller();
+        arg.principal = Some(caller);
         let valid = self.validate_before_vote(arg.clone()).await?;
         if !valid {
-            return Err(String::from("Validate fail,vote failed"));
+            return Err(String::from("vote failed"));
         }
-        arg.principal = Some(ic_cdk::caller());
         self.basic
             .vote(VotesArg {
                 id: arg.id,
-                caller: ic_cdk::caller(),
-                vote: arg.vote.clone(),
+                caller,
+                vote: arg.vote,
             })
             .await?;
         // self.votes_list.push(arg);
