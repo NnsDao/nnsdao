@@ -249,15 +249,12 @@ impl DaoService {
                     let proposal_amount = 1;
                     // Divide equally left ndp
                     let per_count = no / (no_count + 1);
-                    match dip_client
+                    dip_client
                         .transfer_token(
                             proposal.proposer,
                             candid::Nat((proposal_amount + per_count).to_biguint().unwrap()),
                         )
-                        .await
-                    {
-                        Ok(_) | Err(_) => (),
-                    };
+                        .await?;
 
                     for vote in &proposal.vote_data {
                         match vote.1 {

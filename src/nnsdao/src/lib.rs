@@ -163,7 +163,7 @@ async fn heartbeat() {
         return;
     }
     data.heartbeat_last_beat = now;
-    data.dao.check_proposal().await;
+    let result = data.dao.check_proposal().await;
     // check proposal expire time
 
     // ic_cdk::println!("check proposal expire time : {:?}",'');
