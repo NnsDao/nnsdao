@@ -203,7 +203,7 @@ fn post_upgrade() {
         logger: data.logger,
         dao: data.dao,
         disburse: data.disburse,
-        run_heartbeat: false,
+        run_heartbeat: true,
         heartbeat_last_beat: 0,
         heartbeat_interval_seconds: 2,
     });

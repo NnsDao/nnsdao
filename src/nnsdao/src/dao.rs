@@ -225,7 +225,7 @@ impl DaoService {
             dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
 
         for (id, proposal) in (self.basic.proposal_list.clone()).iter() {
-            if now >= proposal.end_time {
+            if now >= proposal.end_time && proposal.proposal_state == ProposalState::Open {
                 // caculate weight
                 let mut yes = 0;
                 let mut yes_count = 0;
@@ -298,9 +298,9 @@ impl DaoService {
                 if let Ok(_) = self.basic.change_proposal_state(ChangeProposalStateArg {
                     id: *id,
                     state: if yes > no {
-                        ProposalState::Succeeded
+                        ProposalState::Accepted
                     } else {
-                        ProposalState::Failed("No more than 50% positive votes!".to_string())
+                        ProposalState::Rejected
                     },
                 }) {};
             }
