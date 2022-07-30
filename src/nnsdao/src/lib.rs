@@ -149,6 +149,12 @@ async fn vote(arg: UserVoteArgs) -> Result<(), String> {
     data.dao.vote(arg).await
 }
 
+#[query]
+#[candid::candid_method(query)]
+pub fn get_handled_proposal() -> Vec<(u64, Result<String, String>)> {
+    let data = ic::get::<Data>();
+    data.dao.get_handled_proposal()
+}
 // heartbeat: 1s
 #[heartbeat]
 async fn heartbeat() {
@@ -163,7 +169,9 @@ async fn heartbeat() {
         return;
     }
     data.heartbeat_last_beat = now;
-    let result = data.dao.check_proposal().await;
+    data.dao.check_proposal().await;
+    // log
+
     // check proposal expire time
 
     // ic_cdk::println!("check proposal expire time : {:?}",'');

@@ -1,7 +1,7 @@
 use crate::{canister::dip20, Data};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
-use ic_cdk::{api::call, export::Principal};
+use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
 use nnsdao_sdk_basic::{
     ChangeProposalStateArg, DaoBasic, DaoCustomFn, Proposal, ProposalArg, ProposalState, Votes,
@@ -91,6 +91,8 @@ pub struct DaoService {
     // votes_list: Vec<UserVoteArgs>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
+    pub handled_list: Vec<(u64, Result<String, String>)>,
+    checking: bool, //
 }
 
 impl DaoService {
@@ -220,12 +222,32 @@ impl DaoService {
         self.basic.proposal_list().into_iter()
     }
     pub async fn check_proposal(&mut self) {
+        if self.checking {
+            return;
+        }
+        self.checking = true;
         let now = ic_cdk::api::time();
         let dip_client =
             dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
 
-        for (id, proposal) in (self.basic.proposal_list.clone()).iter() {
-            if now >= proposal.end_time && proposal.proposal_state == ProposalState::Open {
+        for (id, proposal) in self.basic.proposal_list.clone().into_iter() {
+            // expired or not been handled
+            let mut already_handed = false;
+            for item in &self.handled_list {
+                if item.0 == id {
+                    already_handed = true;
+                    break;
+                }
+            }
+            if proposal.end_time <= now || already_handed {
+                continue;
+            }
+            // let result = (
+            //     id,
+            //     Ok(format!("now is {} expired at{}", now, proposal.end_time)),
+            // );
+            // self.handled_list.push(result);
+            if proposal.proposal_state == ProposalState::Open {
                 // caculate weight
                 let mut yes = 0;
                 let mut yes_count = 0;
@@ -243,31 +265,61 @@ impl DaoService {
                         }
                     }
                 }
+                if yes == 0 && no == 0 {
+                    if let Err(err) = self.basic.change_proposal_state(ChangeProposalStateArg {
+                        id,
+                        state: ProposalState::Rejected,
+                    }) {
+                        let result = (id, Err(err));
+                        self.handled_list.push(result);
+                        continue;
+                    }
+                    let result = (id, Ok(format!("done yes:{} no:{}", yes, no)));
+                    self.handled_list.push(result);
+                    continue;
+                }
                 // reward yes
                 if yes > no {
                     // return proposer ndp;
                     let proposal_amount = 1;
                     // Divide equally left ndp
                     let per_count = no / (no_count + 1);
-                    dip_client
+                    if (dip_client
                         .transfer_token(
                             proposal.proposer,
                             candid::Nat((proposal_amount + per_count).to_biguint().unwrap()),
                         )
-                        .await?;
+                        .await)
+                        .is_err()
+                    {
+                        let result = (
+                            id,
+                            Err(format!(
+                                "{} failed transfer {}",
+                                proposal.proposer.clone().to_text(),
+                                proposal_amount + per_count
+                            )),
+                        );
+                        self.handled_list.push(result);
+                        continue;
+                    }
 
                     for vote in &proposal.vote_data {
                         match vote.1 {
                             Votes::Yes(count) => {
-                                match dip_client
+                                if (dip_client
                                     .transfer_token(
                                         vote.0,
                                         candid::Nat((per_count + count).to_biguint().unwrap()),
                                     )
-                                    .await
+                                    .await)
+                                    .is_err()
                                 {
-                                    Ok(_) | Err(_) => (),
-                                };
+                                    let result =
+                                        (id, Err(format!("{} failed transfer {}", vote.0, count)));
+                                    self.handled_list.push(result);
+                                    continue;
+                                }
                             }
                             Votes::No(_count) => (),
                         }
@@ -279,29 +331,40 @@ impl DaoService {
                         match vote.1 {
                             Votes::Yes(_count) => {}
                             Votes::No(count) => {
-                                match dip_client
+                                if (dip_client
                                     .transfer_token(
                                         vote.0,
-                                        candid::Nat((count).to_biguint().unwrap()),
+                                        candid::Nat((&count).to_biguint().unwrap()),
                                     )
-                                    .await
+                                    .await)
+                                    .is_err()
                                 {
-                                    Ok(_) | Err(_) => (),
-                                };
+                                    let result =
+                                        (id, Err(format!("{} failed transfer {}", vote.0, count)));
+                                    self.handled_list.push(result);
+                                    continue;
+                                }
                             }
                         }
                     }
                 }
-                if let Ok(_) = self.basic.change_proposal_state(ChangeProposalStateArg {
-                    id: *id,
+                if let Err(err) = self.basic.change_proposal_state(ChangeProposalStateArg {
+                    id,
                     state: if yes > no {
                         ProposalState::Accepted
                     } else {
                         ProposalState::Rejected
                     },
-                }) {};
+                }) {
+                    let result = (id, Err(err));
+                    self.handled_list.push(result);
+                    continue;
+                }
+                let result = (id, Ok(format!("done yes:{} no:{}", yes, no)));
+                self.handled_list.push(result)
             }
         }
+        self.checking = false;
     }
     pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
         let caller = ic_cdk::caller();
@@ -371,6 +434,9 @@ impl DaoService {
         member.status_code = -1;
 
         Ok(true)
+    }
+    pub fn get_handled_proposal(&self) -> Vec<(u64, Result<String, String>)> {
+        self.handled_list.clone()
     }
 }
 
