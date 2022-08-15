@@ -246,7 +246,7 @@ impl DaoService {
                     break;
                 }
             }
-            if proposal.end_time <= now || already_handed {
+            if now <= proposal.end_time || already_handed {
                 continue;
             }
             // let result = (
