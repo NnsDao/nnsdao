@@ -70,12 +70,13 @@ pub struct JoinDaoParams {
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct DaoInfo {
-    name: String,      // dao name
-    poster: String,    //  dao poster
-    avatar: String,    // dao avatar
-    tags: Vec<String>, // dao tags
-    intro: String,     // dao intro
-    social: Social,
+    name: String,                            // dao name
+    poster: String,                          //  dao poster
+    avatar: String,                          // dao avatar
+    tags: Vec<String>,                       // dao tags
+    intro: String,                           // dao intro
+    social: Social,                          // social link
+    option: Option<HashMap<String, String>>, // user custom expand field
 }
 
 #[derive(Deserialize, Serialize, Default, Clone, Debug)]
@@ -148,6 +149,7 @@ impl DaoService {
                 proposer: arg.proposer,
                 title: arg.title,
                 content: arg.content,
+                property: arg.property,
                 end_time: arg.end_time,
             })
             .await?;
@@ -158,12 +160,17 @@ impl DaoService {
         Ok(proposal_info)
     }
     async fn validate_before_vote(&mut self, vote_arg: UserVoteArgs) -> Result<bool, String> {
+        self.is_member(vote_arg.principal.unwrap())?;
         // owner can not vote for self;
         let proposal_info = if let Ok(proposal) = self.basic.get_proposal(vote_arg.id) {
             proposal
         } else {
             return Err("Failed to get proposal information".to_string());
         };
+        // can only vote Open proposal
+        if proposal_info.proposal_state != ProposalState::Open {
+            return Err("Voting has closed".to_string());
+        }
         match vote_arg.principal {
             Some(principal) => {
                 if principal == proposal_info.proposer {
@@ -449,6 +456,7 @@ pub struct ProposalContent {
     pub title: String,
     pub content: String,
     pub end_time: u64,
+    pub property: Option<HashMap<String, String>>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -457,6 +465,7 @@ pub struct ProposalBody {
     pub title: String,
     pub content: String,
     pub end_time: u64,
+    pub property: Option<HashMap<String, String>>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]

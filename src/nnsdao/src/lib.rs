@@ -131,6 +131,7 @@ async fn propose(arg: ProposalContent) -> Result<Proposal, String> {
             title: arg.title,
             content: arg.content,
             end_time: arg.end_time,
+            property: arg.property,
         })
         .await
 }
@@ -165,7 +166,7 @@ async fn heartbeat() {
 
     // Limit heartbeats
     let now = ic_cdk::api::time();
-    if now - data.heartbeat_last_beat < data.heartbeat_interval_seconds * 1_000_000_000 {
+    if now - data.heartbeat_last_beat < data.heartbeat_interval_seconds * 3_000_000_000 {
         return;
     }
     data.heartbeat_last_beat = now;

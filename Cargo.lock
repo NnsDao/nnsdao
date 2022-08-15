@@ -950,7 +950,7 @@ dependencies = [
 [[package]]
 name = "nnsdao_sdk_basic"
 version = "0.1.1"
-source = "git+https://github.com/NnsDao/nnsdao_sdk.git?branch=main#d8c0692958b6201161debfe71f560811ed196a65"
+source = "git+https://github.com/NnsDao/nnsdao_sdk.git?branch=main#cf01acc3eae4de3b90f4b73bc63d8f9b98da2197"
 dependencies = [
  "async-trait",
  "candid",
