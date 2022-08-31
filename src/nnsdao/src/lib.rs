@@ -82,7 +82,7 @@ fn user_info() -> Result<MemberItems, String> {
 
 #[update]
 #[candid::candid_method]
-fn quit() -> Result<bool, String> {
+fn quit() -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
     data.dao.quit(caller)

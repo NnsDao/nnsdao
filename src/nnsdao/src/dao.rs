@@ -411,19 +411,20 @@ impl DaoService {
         principal: Principal,
         user_info: JoinDaoParams,
     ) -> Result<MemberItems, String> {
-        let member = self.member_list.get(&principal).map_or(
-            Ok(MemberItems {
-                nickname: user_info.nickname,
-                status_code: 1,
-                avatar: user_info.avatar,
-                intro: user_info.intro,
-                social: user_info.social,
-            }),
-            |_| Err(String::from("You are alreay a member of this group!")),
-        )?;
+        let member = self.member_list.get_mut(&principal);
+        if let Some(item) = member {
+            item.status_code = 1;
+            return Ok(item.clone());
+        }
 
+        let member = MemberItems {
+            nickname: user_info.nickname,
+            status_code: 1,
+            avatar: user_info.avatar,
+            intro: user_info.intro,
+            social: user_info.social,
+        };
         self.member_list.insert(principal, member.clone());
-
         Ok(member)
     }
     pub fn user_info(&self, principal: Principal) -> Result<MemberItems, String> {
@@ -432,15 +433,14 @@ impl DaoService {
             .cloned()
             .ok_or_else(|| "You are not yet a member of this group!".to_string())
     }
-    pub fn quit(&mut self, principal: Principal) -> Result<bool, String> {
+    pub fn quit(&mut self, principal: Principal) -> Result<MemberItems, String> {
         let mut member = self
             .member_list
             .get_mut(&principal)
             .ok_or_else(|| String::from("You are not yet a member of this group!"))?;
 
         member.status_code = -1;
-
-        Ok(true)
+        Ok(member.clone())
     }
     pub fn get_handled_proposal(&self) -> Vec<(u64, Result<String, String>)> {
         self.handled_list.clone()
