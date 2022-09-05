@@ -1,4 +1,5 @@
 use crate::Data;
+use candid::Principal;
 use ic_cdk_macros::init;
 use ic_kit::ic;
 
