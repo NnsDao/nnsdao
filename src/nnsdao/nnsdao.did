@@ -63,7 +63,7 @@ type UserVoteArgs = record {
   vote : Votes;
 };
 type Votes = variant { No : nat64; Yes : nat64 };
-service : {
+service :(principal) -> {
   get_allow : () -> (Result_1);
   get_proposal : (nat64) -> (Result_2) query;
   get_proposal_list : () -> (Result_3) query;

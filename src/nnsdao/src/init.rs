@@ -4,7 +4,6 @@ use ic_cdk_macros::init;
 use ic_kit::ic;
 
 #[init]
-
 fn init(owner: Principal) {
     ic_cdk::setup();
     let data = ic::get_mut::<Data>();
