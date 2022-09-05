@@ -70,12 +70,12 @@ pub struct JoinDaoParams {
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct DaoInfo {
-    name: String,                            // dao name
-    poster: String,                          //  dao poster
-    avatar: String,                          // dao avatar
-    tags: Vec<String>,                       // dao tags
-    intro: String,                           // dao intro
-    social: Social,                          // social link
+    name: String,      // dao name
+    poster: String,    // dao poster
+    avatar: String,    // dao avatar
+    tags: Vec<String>, // dao tags
+    intro: String,     // dao intro
+    // social: Social,                          // social link
     option: Option<HashMap<String, String>>, // user custom expand field
 }
 
@@ -400,7 +400,7 @@ impl DaoService {
         self.info.avatar = dao_info.avatar;
         self.info.tags = dao_info.tags;
         self.info.intro = dao_info.intro;
-        self.info.social = dao_info.social;
+        // self.info.social = dao_info.social;
         self.dao_info()
     }
     pub fn member_list(&self) -> Result<Vec<MemberItems>, String> {
@@ -411,11 +411,11 @@ impl DaoService {
         principal: Principal,
         user_info: JoinDaoParams,
     ) -> Result<MemberItems, String> {
-        let member = self.member_list.get_mut(&principal);
-        if let Some(item) = member {
-            item.status_code = 1;
-            return Ok(item.clone());
-        }
+        // let member = self.member_list.get(&principal);
+        // if let Some(item) = member {
+        //     item.status_code = 1;
+        //     return Ok(item.clone());
+        // }
 
         let member = MemberItems {
             nickname: user_info.nickname,
