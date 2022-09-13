@@ -75,6 +75,13 @@ fn member_list() -> Result<Vec<MemberItems>, String> {
 
 #[query]
 #[candid::candid_method]
+fn dao_info() -> Result<dao::DaoInfo, String> {
+    let data = ic::get::<Data>();
+    data.dao.dao_info()
+}
+
+#[query]
+#[candid::candid_method]
 fn user_info() -> Result<MemberItems, String> {
     let data = ic::get::<Data>();
     data.dao.user_info(ic_cdk::caller())

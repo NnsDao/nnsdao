@@ -62,10 +62,10 @@ pub struct MemberItems {
 }
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct JoinDaoParams {
-    nickname: String,
-    avatar: String,
-    intro: String,
-    social: Vec<Social>,
+    pub nickname: String,
+    pub avatar: String,
+    pub intro: String,
+    pub social: Vec<Social>,
 }
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
@@ -391,7 +391,7 @@ impl DaoService {
         Ok(())
     }
 
-    pub fn dao_info(&mut self) -> Result<DaoInfo, String> {
+    pub fn dao_info(&self) -> Result<DaoInfo, String> {
         Ok(self.info.clone())
     }
     pub fn update_dao_info(&mut self, dao_info: DaoInfo) -> Result<DaoInfo, String> {
