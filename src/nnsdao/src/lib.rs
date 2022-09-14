@@ -8,6 +8,7 @@ mod tools;
 
 use crate::logger::*;
 use crate::owner::*;
+use dao::DaoInfo;
 use dao::JoinDaoParams;
 use dao::ProposalBody;
 use dao::ProposalContent;
@@ -22,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
 use std::vec::Vec;
+use tools::is_owner;
 
 // #[derive(Default, Clone)]
 #[derive(Deserialize, Serialize, Default, Clone, Debug)]
@@ -78,6 +80,13 @@ fn member_list() -> Result<Vec<MemberItems>, String> {
 fn dao_info() -> Result<dao::DaoInfo, String> {
     let data = ic::get::<Data>();
     data.dao.dao_info()
+}
+
+#[update(guard = "is_owner")]
+#[candid::candid_method]
+fn update_dao_info(dao_info: DaoInfo) -> Result<DaoInfo, String> {
+    let data = ic::get_mut::<Data>();
+    data.dao.update_dao_info(dao_info)
 }
 
 #[query]
