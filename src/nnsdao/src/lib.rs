@@ -8,6 +8,8 @@ mod tools;
 
 use crate::logger::*;
 use crate::owner::*;
+
+use candid::Principal;
 use dao::DaoInfo;
 use dao::JoinDaoParams;
 use dao::ProposalBody;
@@ -91,9 +93,10 @@ fn update_dao_info(dao_info: DaoInfo) -> Result<DaoInfo, String> {
 
 #[query]
 #[candid::candid_method]
-fn user_info() -> Result<MemberItems, String> {
+fn user_info(principal: Option<Principal>) -> Result<MemberItems, String> {
+    let user = principal.unwrap_or_else(ic_cdk::caller);
     let data = ic::get::<Data>();
-    data.dao.user_info(ic_cdk::caller())
+    data.dao.user_info(user)
 }
 
 #[update]

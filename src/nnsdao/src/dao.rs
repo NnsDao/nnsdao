@@ -52,8 +52,9 @@ pub struct Social {
     link: String,
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
+#[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
 pub struct MemberItems {
+    principal: Principal,
     nickname: String,
     status_code: i8, // -1 quit | 0 default | 1 joined |
     avatar: String,
@@ -418,6 +419,7 @@ impl DaoService {
         // }
 
         let member = MemberItems {
+            principal,
             nickname: user_info.nickname,
             status_code: 1,
             avatar: user_info.avatar,
