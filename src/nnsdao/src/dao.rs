@@ -207,11 +207,11 @@ impl DaoService {
             Votes::No(num) => integer_to_nat(num as i64),
         };
 
-        let allow = dip_client.allowance(caller, dao_principal).await.unwrap();
+        // let allow = dip_client.allowance(caller, dao_principal).await.unwrap();
 
-        if allow.0 < amount {
-            return Err("Approved insufficient NDP count".to_string());
-        }
+        // if allow.0 < amount {
+        //     return Err("Approved insufficient NDP count".to_string());
+        // }
         // transfer
         let transfer = dip_client
             .transferFrom(caller, dao_principal, amount.clone())
