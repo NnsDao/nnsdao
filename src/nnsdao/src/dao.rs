@@ -126,14 +126,14 @@ impl DaoService {
         // }
         // ic_cdk::println!("approved {:#?}", approved);
 
-        let allow = dip_client
-            .allowance(arg.proposer, dao_principal)
-            .await
-            .unwrap();
+        // let allow = dip_client
+        //     .allowance(arg.proposer, dao_principal)
+        //     .await
+        //     .unwrap();
 
-        if allow.0 < amount {
-            return Err("Approved insufficient NDP count".to_string());
-        }
+        // if allow.0 < amount {
+        //     return Err("Approved insufficient NDP count".to_string());
+        // }
         // transfer
         let transfer = dip_client
             .transferFrom(arg.proposer, dao_principal, amount.clone())
@@ -207,6 +207,7 @@ impl DaoService {
             Votes::No(num) => integer_to_nat(num as i64),
         };
 
+        // allow.0 may block_height ,not approved amount
         // let allow = dip_client.allowance(caller, dao_principal).await.unwrap();
 
         // if allow.0 < amount {
