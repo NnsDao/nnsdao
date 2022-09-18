@@ -164,11 +164,7 @@ impl DaoService {
     async fn validate_before_vote(&mut self, vote_arg: UserVoteArgs) -> Result<bool, String> {
         self.is_member(vote_arg.principal.unwrap())?;
         // owner can not vote for self;
-        let proposal_info = if let Ok(proposal) = self.basic.get_proposal(vote_arg.id) {
-            proposal
-        } else {
-            return Err("Failed to get proposal information".to_string());
-        };
+        let proposal_info = self.basic.get_proposal(vote_arg.id)?;
         // can only vote Open proposal
         if proposal_info.proposal_state != ProposalState::Open {
             return Err("Voting has closed".to_string());
