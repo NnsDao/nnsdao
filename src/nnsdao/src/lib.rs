@@ -179,13 +179,9 @@ pub fn get_handled_proposal() -> Vec<(u64, Result<String, String>)> {
 #[heartbeat]
 async fn heartbeat() {
     let data = ic::get_mut::<Data>();
-    if !data.run_heartbeat {
-        return;
-    }
-
     // Limit heartbeats
     let now = ic_cdk::api::time();
-    if now - data.heartbeat_last_beat < data.heartbeat_interval_seconds * 3_000_000_000 {
+    if now - data.heartbeat_last_beat < 5 * 1_000_000_000 {
         return;
     }
     data.heartbeat_last_beat = now;

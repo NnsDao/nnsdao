@@ -93,8 +93,8 @@ pub struct DaoService {
     // votes_list: Vec<UserVoteArgs>,
     info: DaoInfo,
     pub basic: DaoBasic<CustomDao>,
-    pub handled_list: Vec<(u64, Result<String, String>)>,
-    checking: bool, //
+    pub pending_proposal: Vec<u64>,
+    pub proposal_log: Vec<(u64, Result<String, String>)>,
 }
 
 impl DaoService {
@@ -158,6 +158,7 @@ impl DaoService {
         //     proposer: arg.proposer,
         //     id: proposal_info.id,
         // });
+        self.pending_proposal.push(proposal_info.id);
         Ok(proposal_info)
     }
     async fn validate_before_vote(&mut self, vote_arg: UserVoteArgs) -> Result<bool, String> {
@@ -231,149 +232,143 @@ impl DaoService {
         self.basic.proposal_list().into_iter()
     }
     pub async fn check_proposal(&mut self) {
-        if self.checking {
+        if self.pending_proposal.is_empty() {
             return;
         }
-        self.checking = true;
+        let id = self.pending_proposal.pop();
+        if id.is_none() {
+            return;
+        }
+        let id = id.unwrap();
+
         let now = ic_cdk::api::time();
+        let proposal = self.basic.proposal_list.get_mut(&id);
+        if proposal.is_none() {
+            return;
+        }
+        let proposal = proposal.unwrap();
+        if now <= proposal.end_time {
+            //  reinqueue
+            self.pending_proposal.push(id);
+            return;
+        }
+
         let dip_client =
             dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
 
-        for (id, proposal) in self.basic.proposal_list.clone().into_iter() {
-            // expired or not been handled
-            let mut already_handed = false;
-            for item in &self.handled_list {
-                if item.0 == id {
-                    already_handed = true;
-                    break;
+        if proposal.proposal_state == ProposalState::Open {
+            // caculate weight
+            let mut yes = 0;
+            let mut yes_count = 0;
+            let mut no = 0;
+            let mut no_count = 0;
+            for vote in &proposal.vote_data {
+                match vote.1 {
+                    Votes::Yes(count) => {
+                        yes += count;
+                        yes_count += 1
+                    }
+                    Votes::No(count) => {
+                        no += count;
+                        no_count += 1;
+                    }
                 }
             }
-            if now <= proposal.end_time || already_handed {
-                continue;
+            if yes == 0 && no == 0 {
+                if let Err(err) = self.basic.change_proposal_state(ChangeProposalStateArg {
+                    id,
+                    state: ProposalState::Rejected,
+                }) {
+                    let result = (id, Err(err));
+                    self.proposal_log.push(result);
+                    return;
+                }
+                let result = (id, Ok(format!("vote yes:{} no:{}", yes, no)));
+                self.proposal_log.push(result);
+                return;
             }
-            // let result = (
-            //     id,
-            //     Ok(format!("now is {} expired at{}", now, proposal.end_time)),
-            // );
-            // self.handled_list.push(result);
-            if proposal.proposal_state == ProposalState::Open {
-                // caculate weight
-                let mut yes = 0;
-                let mut yes_count = 0;
-                let mut no = 0;
-                let mut no_count = 0;
+            // reward yes
+            if yes > no {
+                // return proposer ndp;
+                let proposal_amount = 1;
+                // Divide equally left ndp
+                let per_count = no / (no_count + 1);
+                if (dip_client
+                    .transfer_token(
+                        proposal.proposer,
+                        candid::Nat((proposal_amount + per_count).to_biguint().unwrap()),
+                    )
+                    .await)
+                    .is_err()
+                {
+                    let result = (
+                        id,
+                        Err(format!(
+                            "{} failed transfer {}",
+                            proposal.proposer.clone().to_text(),
+                            proposal_amount + per_count
+                        )),
+                    );
+                    self.proposal_log.push(result);
+                    //    continue fallback vote user ndp
+                }
+
                 for vote in &proposal.vote_data {
                     match vote.1 {
                         Votes::Yes(count) => {
-                            yes += count;
-                            yes_count += 1
+                            if (dip_client
+                                .transfer_token(
+                                    vote.0,
+                                    candid::Nat((per_count + count).to_biguint().unwrap()),
+                                )
+                                .await)
+                                .is_err()
+                            {
+                                let result =
+                                    (id, Err(format!("{} failed transfer {}", vote.0, count)));
+                                self.proposal_log.push(result);
+                                continue;
+                            }
                         }
+                        Votes::No(_count) => (),
+                    }
+                }
+            } else {
+                // give back no
+                // let per_count = yes / yes_count;
+                for vote in &proposal.vote_data {
+                    match vote.1 {
+                        Votes::Yes(_count) => {}
                         Votes::No(count) => {
-                            no += count;
-                            no_count += 1;
-                        }
-                    }
-                }
-                if yes == 0 && no == 0 {
-                    if let Err(err) = self.basic.change_proposal_state(ChangeProposalStateArg {
-                        id,
-                        state: ProposalState::Rejected,
-                    }) {
-                        let result = (id, Err(err));
-                        self.handled_list.push(result);
-                        continue;
-                    }
-                    let result = (id, Ok(format!("done yes:{} no:{}", yes, no)));
-                    self.handled_list.push(result);
-                    continue;
-                }
-                // reward yes
-                if yes > no {
-                    // return proposer ndp;
-                    let proposal_amount = 1;
-                    // Divide equally left ndp
-                    let per_count = no / (no_count + 1);
-                    if (dip_client
-                        .transfer_token(
-                            proposal.proposer,
-                            candid::Nat((proposal_amount + per_count).to_biguint().unwrap()),
-                        )
-                        .await)
-                        .is_err()
-                    {
-                        let result = (
-                            id,
-                            Err(format!(
-                                "{} failed transfer {}",
-                                proposal.proposer.clone().to_text(),
-                                proposal_amount + per_count
-                            )),
-                        );
-                        self.handled_list.push(result);
-                        continue;
-                    }
-
-                    for vote in &proposal.vote_data {
-                        match vote.1 {
-                            Votes::Yes(count) => {
-                                if (dip_client
-                                    .transfer_token(
-                                        vote.0,
-                                        candid::Nat((per_count + count).to_biguint().unwrap()),
-                                    )
-                                    .await)
-                                    .is_err()
-                                {
-                                    let result =
-                                        (id, Err(format!("{} failed transfer {}", vote.0, count)));
-                                    self.handled_list.push(result);
-                                    continue;
-                                }
-                            }
-                            Votes::No(_count) => (),
-                        }
-                    }
-                } else {
-                    // give back no
-                    // let per_count = yes / yes_count;
-                    for vote in &proposal.vote_data {
-                        match vote.1 {
-                            Votes::Yes(_count) => {}
-                            Votes::No(count) => {
-                                if (dip_client
-                                    .transfer_token(
-                                        vote.0,
-                                        candid::Nat((&count).to_biguint().unwrap()),
-                                    )
-                                    .await)
-                                    .is_err()
-                                {
-                                    let result =
-                                        (id, Err(format!("{} failed transfer {}", vote.0, count)));
-                                    self.handled_list.push(result);
-                                    continue;
-                                }
+                            if (dip_client
+                                .transfer_token(vote.0, candid::Nat((&count).to_biguint().unwrap()))
+                                .await)
+                                .is_err()
+                            {
+                                let result =
+                                    (id, Err(format!("{} failed transfer {}", vote.0, count)));
+                                self.proposal_log.push(result);
+                                continue;
                             }
                         }
                     }
                 }
-                if let Err(err) = self.basic.change_proposal_state(ChangeProposalStateArg {
-                    id,
-                    state: if yes > no {
-                        ProposalState::Accepted
-                    } else {
-                        ProposalState::Rejected
-                    },
-                }) {
-                    let result = (id, Err(err));
-                    self.handled_list.push(result);
-                    continue;
-                }
-                let result = (id, Ok(format!("done yes:{} no:{}", yes, no)));
-                self.handled_list.push(result)
             }
+            if let Err(err) = self.basic.change_proposal_state(ChangeProposalStateArg {
+                id,
+                state: if yes > no {
+                    ProposalState::Accepted
+                } else {
+                    ProposalState::Rejected
+                },
+            }) {
+                let result = (id, Err(err));
+                self.proposal_log.push(result);
+                return;
+            }
+            let result = (id, Ok(format!("completed yes:{} no:{}", yes, no)));
+            self.proposal_log.push(result);
         }
-        self.checking = false;
     }
     pub async fn vote(&mut self, mut arg: UserVoteArgs) -> Result<(), String> {
         let caller = ic_cdk::caller();
@@ -446,7 +441,7 @@ impl DaoService {
         Ok(member.clone())
     }
     pub fn get_handled_proposal(&self) -> Vec<(u64, Result<String, String>)> {
-        self.handled_list.clone()
+        self.proposal_log.clone()
     }
 }
 
