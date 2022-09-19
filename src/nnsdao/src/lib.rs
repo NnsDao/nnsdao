@@ -5,6 +5,7 @@ mod init;
 mod logger;
 mod owner;
 mod tools;
+pub mod types;
 
 use crate::logger::*;
 use crate::owner::*;
@@ -26,6 +27,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::vec::Vec;
 use tools::is_owner;
+use types::ProposalLog;
 
 // #[derive(Default, Clone)]
 #[derive(Deserialize, Serialize, Default, Clone, Debug)]
@@ -171,9 +173,13 @@ async fn vote(arg: UserVoteArgs) -> Result<(), String> {
 
 #[query]
 #[candid::candid_method(query)]
-pub fn get_handled_proposal() -> Vec<(u64, Result<String, String>)> {
+pub fn proposal_heartbeat_log() -> Result<ProposalLog, String> {
     let data = ic::get::<Data>();
-    data.dao.get_handled_proposal()
+
+    Ok(ProposalLog {
+        pending: data.dao.pending_proposal.clone(),
+        finished: data.dao.proposal_log.clone(),
+    })
 }
 // heartbeat: 1s
 #[heartbeat]

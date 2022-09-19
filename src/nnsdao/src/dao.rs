@@ -436,9 +436,6 @@ impl DaoService {
         member.status_code = -1;
         Ok(member.clone())
     }
-    pub fn get_handled_proposal(&self) -> Vec<(u64, Result<String, String>)> {
-        self.proposal_log.clone()
-    }
 }
 
 fn integer_to_nat(amount: i64) -> candid::Nat {
