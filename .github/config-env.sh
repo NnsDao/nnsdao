@@ -15,6 +15,6 @@ else
   npm init -y
 fi
 
-npm i @dfinity/agent @dfinity/principal @dfinity/candid @dfinity/identity glob
+npm i @dfinity/agent @dfinity/principal @dfinity/candid @dfinity/identity glob -f || true
 
 # npm list -g --depth=0
