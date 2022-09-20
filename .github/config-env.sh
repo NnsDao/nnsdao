@@ -13,8 +13,7 @@ if [ -f "./package.json" ]; then
 else
   echo 'Init npm project config'
   npm init -y
+  npm i @dfinity/agent @dfinity/principal @dfinity/candid @dfinity/identity glob -f || true
 fi
-
-npm i @dfinity/agent @dfinity/principal @dfinity/candid @dfinity/identity glob -f || true
 
 # npm list -g --depth=0
