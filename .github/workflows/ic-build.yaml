@@ -26,17 +26,15 @@ jobs:
 
       - name: Setup dfx
         run: |
-          bash ./github/setup-dfx.sh
+          bash .github/setup-dfx.sh
 
       # nodejs env
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
-
       # Config environment
-      - name: Setup Node env
-        run: |
+      - run: |
           bash .github/setup-node.sh
 
       # rust env
@@ -45,9 +43,7 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: stable
-
-      - name: Setup wasm env
-        run: |
+      - run: |
           rustup toolchain install nightly
           rustup target add wasm32-unknown-unknown
 
@@ -62,13 +58,14 @@ jobs:
           RUST_BACKTRACE1: full
         run: |
           dfx build --network ic 
-          bash ./.github/copy-types.sh
+          bash .github/copy-types.sh
 
       - name: Generate sync.yml
         run: |
           # Must Use prettier format generated {.js,.ts} file
           npx --yes prettier --single-quote --trailing-comma none --write ".dfx/local/canisters/**/*.{ts,js}"
           node .github/update-sync.yml.mjs
+
       # sync file to repo
       # https://github.com/marketplace/actions/repo-file-sync-action#%EF%B8%8F-sync-configuration
       - name: Run GitHub File Sync
