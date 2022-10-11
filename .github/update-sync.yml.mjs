@@ -5,7 +5,7 @@ import { resolve } from 'path';
 const dfxJson = JSON.parse(readFileSync(relativeToRootPath('dfx.json')).toString());
 const syncYMLPath = '.github/sync.yml';
 let syncYML = readFileSync(resolve(syncYMLPath)).toString();
-const syncFile = glob.sync('.dfx/local/canisters/**/*.{ts,did}', {
+const syncFile = glob.sync('.dfx/ic/canisters/**/*.{ts,did}', {
   cwd: resolve('./'),
 });
 

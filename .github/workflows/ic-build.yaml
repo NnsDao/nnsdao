@@ -1,11 +1,12 @@
 # This is a workflow to help you auto update IC generated files to indicated package
-name: Build IC
+name: IC Build
 
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches:
+      - '**'
       - 'releases/**'
       - 'release'
   # Allows you to run this workflow manually from the Actions tab
@@ -23,47 +24,45 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
+      - name: Setup dfx
+        run: |
+          bash ./github/setup-dfx.sh
+
       # nodejs env
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
 
+      # Config environment
+      - name: Setup Node env
+        run: |
+          bash .github/setup-node.sh
+
       # rust env
       # https://github.com/marketplace/actions/set-up-a-rust-toolchain
-      - name: Setup rust env
+      - name: Setup rust
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: stable
 
-      - name: Rustup wasm32
+      - name: Setup wasm env
         run: |
           rustup toolchain install nightly
           rustup target add wasm32-unknown-unknown
-
-      # Config environment
-      - name: Config environment
-        run: |
-          bash .github/config-env.sh
 
       # update candid file
       - name: Update latest candid
         run: |
           node .github/update-candid.mjs
+
       # generate files
       - name: Dfx Build
         env:
           RUST_BACKTRACE1: full
         run: |
-          npm ci > /dev/null 2>&1 || true
-          dfx start &
-          sleep 30
-          dfx canister create --all
-          dfx build
-          dfx stop || true
-          # for frontend type check
-          echo "copy index.d.ts"
-          bash ./.github/copy-types.sh || true
+          dfx build --network ic 
+          bash ./.github/copy-types.sh
 
       - name: Generate sync.yml
         run: |
