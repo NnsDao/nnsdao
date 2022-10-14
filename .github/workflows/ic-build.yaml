@@ -63,7 +63,7 @@ jobs:
       - name: Generate sync.yml
         run: |
           # Must Use prettier format generated {.js,.ts} file
-          npx --yes prettier --single-quote --trailing-comma none --write ".dfx/local/canisters/**/*.{ts,js}"
+          npx --yes prettier --single-quote --trailing-comma none --write ".dfx/**/*.{ts,js}"
           node .github/update-sync.yml.mjs
 
       # sync file to repo
