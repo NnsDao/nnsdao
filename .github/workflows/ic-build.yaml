@@ -1,5 +1,5 @@
 # This is a workflow to help you auto update IC generated files to indicated package
-name: Build IC
+name: IC Build
 
 # Controls when the workflow will run
 on:
@@ -23,53 +23,48 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
+      - name: Setup dfx
+        run: |
+          bash .github/setup-dfx.sh
+
       # nodejs env
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
+      # Config environment
+      - run: |
+          bash .github/setup-node.sh
 
       # rust env
       # https://github.com/marketplace/actions/set-up-a-rust-toolchain
-      - name: Setup rust env
+      - name: Setup rust
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: stable
-
-      - name: Rustup wasm32
-        run: |
+      - run: |
           rustup toolchain install nightly
           rustup target add wasm32-unknown-unknown
-
-      # Config environment
-      - name: Config environment
-        run: |
-          bash .github/config-env.sh
 
       # update candid file
       - name: Update latest candid
         run: |
           node .github/update-candid.mjs
+
       # generate files
       - name: Dfx Build
         env:
           RUST_BACKTRACE1: full
         run: |
-          npm ci > /dev/null 2>&1 || true
-          dfx start &
-          sleep 30
-          dfx canister create --all
-          dfx build
-          dfx stop || true
-          # for frontend type check
-          echo "copy index.d.ts"
-          bash ./.github/copy-types.sh || true
+          dfx build --network ic
+          bash .github/copy-types.sh
 
       - name: Generate sync.yml
         run: |
           # Must Use prettier format generated {.js,.ts} file
-          npx --yes prettier --single-quote --trailing-comma none --write ".dfx/local/canisters/**/*.{ts,js}"
+          npx --yes prettier --single-quote --trailing-comma none --write ".dfx/**/*.{ts,js}"
           node .github/update-sync.yml.mjs
+
       # sync file to repo
       # https://github.com/marketplace/actions/repo-file-sync-action#%EF%B8%8F-sync-configuration
       - name: Run GitHub File Sync
