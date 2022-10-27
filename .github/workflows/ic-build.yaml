@@ -6,7 +6,6 @@ on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches:
-      - '**'
       - 'releases/**'
       - 'release'
   # Allows you to run this workflow manually from the Actions tab
@@ -57,7 +56,7 @@ jobs:
         env:
           RUST_BACKTRACE1: full
         run: |
-          dfx build --network ic 
+          dfx build --network ic
           bash .github/copy-types.sh
 
       - name: Generate sync.yml
