@@ -60,6 +60,7 @@ pub struct MemberItems {
     avatar: String,
     intro: String,
     social: Vec<Social>,
+    join_at:u64
 }
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct JoinDaoParams {
@@ -76,6 +77,7 @@ pub struct DaoInfo {
     avatar: String,    // dao avatar
     tags: Vec<String>, // dao tags
     intro: String,     // dao intro
+    canister_id:String,      // current dao canister id 
     // social: Social,                          // social link
     option: Option<HashMap<String, String>>, // user custom expand field
 }
@@ -417,6 +419,7 @@ impl DaoService {
             avatar: user_info.avatar,
             intro: user_info.intro,
             social: user_info.social,
+            join_at: ic_cdk::api::time(),
         };
         self.member_list.insert(principal, member.clone());
         Ok(member)
