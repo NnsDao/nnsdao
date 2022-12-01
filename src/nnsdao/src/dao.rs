@@ -9,7 +9,7 @@ use nnsdao_sdk_basic::{
 };
 use num_bigint::ToBigUint;
 use serde::Serialize;
-use std::{collections::HashMap, option::Option::Some};
+use std::{collections::HashMap, option::Option::Some, string};
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
@@ -70,7 +70,14 @@ pub struct JoinDaoParams {
     pub social: Vec<Social>,
 }
 
-#[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
+#[derive(Default)]
+pub struct A {
+  name:String,
+  id:u8
+}
+
+
+#[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
 pub struct DaoInfo {
     name: String,      // dao name
     poster: String,    // dao poster
@@ -80,6 +87,12 @@ pub struct DaoInfo {
     canister_id:String,      // current dao canister id 
     // social: Social,                          // social link
     option: Option<HashMap<String, String>>, // user custom expand field
+}
+
+impl Default for DaoInfo {
+    fn default() -> Self {
+        Self { name: Default::default(), poster: Default::default(), avatar: Default::default(), tags: Default::default(), intro: Default::default(), canister_id: ic_cdk::id().to_text(), option: Default::default() }
+    }
 }
 
 #[derive(Deserialize, Serialize, Default, Clone, Debug)]
