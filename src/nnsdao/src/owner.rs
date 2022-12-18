@@ -19,8 +19,8 @@ impl OwnerService {
     }
 
     pub fn is_owner(&self, caller: Principal) -> Result<(), String> {
-        for owner in self.owners.clone() {
-            if owner == caller {
+        for owner in &self.owners {
+            if *owner == caller {
                 return Ok(());
             }
         }

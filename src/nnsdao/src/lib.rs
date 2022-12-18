@@ -4,11 +4,13 @@ mod disburse;
 mod init;
 mod logger;
 mod owner;
+pub mod sdk;
 mod tools;
 pub mod types;
 
 use crate::logger::*;
 use crate::owner::*;
+use crate::sdk::Proposal;
 
 use candid::Principal;
 use dao::DaoInfo;
@@ -21,10 +23,14 @@ use disburse::DisburseService;
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
-use nnsdao_sdk_basic::Proposal;
+use ic_kit::interfaces::management::CanisterStatus;
+use ic_kit::interfaces::management::CanisterStatusResponse;
+use ic_kit::interfaces::management::WithCanisterId;
+use ic_kit::interfaces::Method;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
+use std::result;
 use std::vec::Vec;
 use tools::is_owner;
 use types::ProposalLog;
@@ -72,10 +78,10 @@ fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
     data.dao.join(caller, user_info)
 }
 
-#[query]
+#[update]
 #[candid::candid_method]
 fn member_list() -> Result<Vec<MemberItems>, String> {
-    let data = ic::get::<Data>();
+    let data = ic::get_mut::<Data>();
     data.dao.member_list()
 }
 
@@ -84,6 +90,21 @@ fn member_list() -> Result<Vec<MemberItems>, String> {
 fn dao_info() -> Result<dao::DaoInfo, String> {
     let data = ic::get::<Data>();
     data.dao.dao_info()
+}
+
+#[update]
+#[candid::candid_method]
+async fn dao_status() -> std::result::Result<
+    (ic_kit::interfaces::management::CanisterStatusResponse,),
+    (ic_kit::RejectionCode, std::string::String),
+> {
+    CanisterStatus::perform(
+        Principal::management_canister(),
+        (WithCanisterId {
+            canister_id: ic_cdk::id(),
+        },),
+    )
+    .await
 }
 
 #[update(guard = "is_owner")]
@@ -109,6 +130,12 @@ fn quit() -> Result<MemberItems, String> {
     data.dao.quit(caller)
 }
 
+#[query]
+#[candid::candid_method(query)]
+fn get_owner() -> Vec<Principal> {
+    let data = ic::get::<Data>();
+    data.owners.get_owners()
+}
 #[query]
 #[candid::candid_method(query)]
 fn get_proposal_list() -> Result<HashMap<u64, Proposal>, String> {
@@ -151,6 +178,7 @@ async fn propose(arg: ProposalContent) -> Result<Proposal, String> {
             proposer: ic_cdk::caller(),
             title: arg.title,
             content: arg.content,
+            start_time: arg.start_time,
             end_time: arg.end_time,
             property: arg.property,
         })
