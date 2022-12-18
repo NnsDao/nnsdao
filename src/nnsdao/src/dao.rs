@@ -1,15 +1,15 @@
+use crate::sdk::{
+    ChangeProposalStateArg, DaoBasic, DaoCustomFn, Proposal, ProposalArg, ProposalState, Votes,
+    VotesArg,
+};
 use crate::{canister::dip20, Data};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic::{self};
-use nnsdao_sdk_basic::{
-    ChangeProposalStateArg, DaoBasic, DaoCustomFn, Proposal, ProposalArg, ProposalState, Votes,
-    VotesArg,
-};
 use num_bigint::ToBigUint;
 use serde::Serialize;
-use std::{collections::HashMap, option::Option::Some, string};
+use std::{collections::HashMap, option::Option::Some};
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct CustomDao {}
@@ -60,7 +60,8 @@ pub struct MemberItems {
     avatar: String,
     intro: String,
     social: Vec<Social>,
-    join_at:u64
+    join_at: u64,
+    last_visit_at: u64,
 }
 #[derive(CandidType, Clone, Serialize, Deserialize, Default, Debug)]
 pub struct JoinDaoParams {
@@ -72,26 +73,33 @@ pub struct JoinDaoParams {
 
 #[derive(Default)]
 pub struct A {
-  name:String,
-  id:u8
+    name: String,
+    id: u8,
 }
-
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
 pub struct DaoInfo {
-    name: String,      // dao name
-    poster: String,    // dao poster
-    avatar: String,    // dao avatar
-    tags: Vec<String>, // dao tags
-    intro: String,     // dao intro
-    canister_id:String,      // current dao canister id 
+    name: String,        // dao name
+    poster: String,      // dao poster
+    avatar: String,      // dao avatar
+    tags: Vec<String>,   // dao tags
+    intro: String,       // dao intro
+    canister_id: String, // current dao canister id
     // social: Social,                          // social link
     option: Option<HashMap<String, String>>, // user custom expand field
 }
 
 impl Default for DaoInfo {
     fn default() -> Self {
-        Self { name: Default::default(), poster: Default::default(), avatar: Default::default(), tags: Default::default(), intro: Default::default(), canister_id: ic_cdk::id().to_text(), option: Default::default() }
+        Self {
+            name: Default::default(),
+            poster: Default::default(),
+            avatar: Default::default(),
+            tags: Default::default(),
+            intro: Default::default(),
+            canister_id: ic_cdk::id().to_text(),
+            option: Default::default(),
+        }
     }
 }
 
@@ -121,7 +129,7 @@ impl DaoService {
         Ok(true)
     }
     pub async fn propose(&mut self, arg: ProposalBody) -> Result<Proposal, String> {
-        // check balance
+        // check balances
         // let caller = ic_cdk::caller();
         let dip_client =
             dip20::Service::new(Principal::from_text("vgqnj-miaaa-aaaal-qaapa-cai").unwrap());
@@ -166,6 +174,7 @@ impl DaoService {
                 title: arg.title,
                 content: arg.content,
                 property: arg.property,
+                start_time: arg.start_time,
                 end_time: arg.end_time,
             })
             .await?;
@@ -180,17 +189,21 @@ impl DaoService {
         self.is_member(vote_arg.principal.unwrap())?;
         // owner can not vote for self;
         let proposal_info = self.basic.get_proposal(vote_arg.id)?;
-        // can only vote Open proposal
-        if proposal_info.proposal_state != ProposalState::Open {
-            return Err("Voting has closed".to_string());
+        // valida start_time & end_time
+        if ic_cdk::api::time() < proposal_info.start_time {
+            return Err("Voting has not yet started".to_owned());
         }
-        match vote_arg.principal {
-            Some(principal) => {
-                if principal == proposal_info.proposer {
-                    return Err("You can't vote for yourself!".to_string());
-                }
+        if ic_cdk::api::time() > proposal_info.end_time {
+            return Err("Voting has ended".to_owned());
+        }
+        // // can only vote Open proposal
+        // if proposal_info.proposal_state != ProposalState::Open {
+        //     return Err("Voting has closed".to_string());
+        // }
+        if let Some(principal) = vote_arg.principal {
+            if principal == proposal_info.proposer {
+                return Err("You can't vote for yourself!".to_string());
             }
-            None => (),
         }
         let caller = ic_cdk::caller();
         // check balance
@@ -237,9 +250,7 @@ impl DaoService {
 
         Ok(true)
     }
-    pub fn proposal_list(
-        &self,
-    ) -> std::collections::hash_map::IntoIter<u64, nnsdao_sdk_basic::Proposal> {
+    pub fn proposal_list(&self) -> std::collections::hash_map::IntoIter<u64, Proposal> {
         self.basic.proposal_list().into_iter()
     }
     pub async fn check_proposal(&mut self) {
@@ -411,7 +422,13 @@ impl DaoService {
         // self.info.social = dao_info.social;
         self.dao_info()
     }
-    pub fn member_list(&self) -> Result<Vec<MemberItems>, String> {
+    pub fn member_list(&mut self) -> Result<Vec<MemberItems>, String> {
+        // if current user joined this dao ,update last_visit_at timestamp
+        let caller = ic_cdk::caller();
+
+        if let Some(info) = self.member_list.get_mut(&caller) {
+            info.last_visit_at = ic_cdk::api::time()
+        }
         Ok(self.member_list.values().cloned().collect())
     }
     pub fn join(
@@ -433,6 +450,7 @@ impl DaoService {
             intro: user_info.intro,
             social: user_info.social,
             join_at: ic_cdk::api::time(),
+            last_visit_at: ic_cdk::api::time(),
         };
         self.member_list.insert(principal, member.clone());
         Ok(member)
@@ -465,6 +483,7 @@ fn integer_to_nat(amount: i64) -> candid::Nat {
 pub struct ProposalContent {
     pub title: String,
     pub content: String,
+    pub start_time: u64,
     pub end_time: u64,
     pub property: Option<HashMap<String, String>>,
 }
@@ -474,6 +493,7 @@ pub struct ProposalBody {
     pub proposer: Principal,
     pub title: String,
     pub content: String,
+    pub start_time: u64,
     pub end_time: u64,
     pub property: Option<HashMap<String, String>>,
 }
