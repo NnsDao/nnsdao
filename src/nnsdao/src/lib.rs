@@ -23,13 +23,12 @@ use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
 use ic_kit::interfaces::management::CanisterStatus;
-use ic_kit::interfaces::management::CanisterStatusResponse;
+
 use ic_kit::interfaces::management::WithCanisterId;
 use ic_kit::interfaces::Method;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
-use std::result;
 use std::vec::Vec;
 use tools::is_owner;
 
@@ -126,6 +125,15 @@ fn quit() -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
     data.dao.quit(caller)
+}
+
+#[update(guard = "is_owner")]
+#[candid::candid_method]
+fn add_owner() -> Result<(), String> {
+    let data = ic::get_mut::<Data>();
+    let caller = ic_cdk::caller();
+    data.owners.add_owner(caller);
+    Ok(())
 }
 
 #[query]
