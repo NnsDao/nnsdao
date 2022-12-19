@@ -10,8 +10,9 @@ pub struct OwnerService {
 }
 
 impl OwnerService {
-    pub fn add_owner(&mut self, principal: Principal) {
-        self.owners.push(principal)
+    pub fn add_owner(&mut self, principal: Principal) -> Vec<Principal> {
+        self.owners.push(principal);
+        self.get_owners()
     }
 
     pub fn get_owners(&self) -> Vec<Principal> {
