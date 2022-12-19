@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-DFX_VERSION=$(node -p "require('./dfx.json').dfx")
+VERSION=$(node -p "require('./dfx.json').dfx")
 
+if [[ "${VERSION}" != "undefined" ]]; then
+  DFX_VERSION=${VERSION}
+fi
 echo "dfx version: ${DFX_VERSION}"
+
 # //  Use the DFX_VERSION environment variable to identify a specific version of the SDK that you want to install.
-DFX_VERSION=${DFX_VERSION} sh -ci "$(curl -fsSL https://smartcontracts.org/install.sh)"
+sh -ci "$(curl -fsSL https://smartcontracts.org/install.sh)"
