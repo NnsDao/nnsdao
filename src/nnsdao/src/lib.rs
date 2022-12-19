@@ -129,10 +129,10 @@ fn quit() -> Result<MemberItems, String> {
 
 #[update(guard = "is_owner")]
 #[candid::candid_method]
-fn add_owner() -> Result<(), String> {
+fn add_owner(principal: Principal) -> Result<(), String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
-    data.owners.add_owner(caller);
+    data.owners.add_owner(principal);
     Ok(())
 }
 
