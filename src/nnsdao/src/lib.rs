@@ -19,10 +19,14 @@ use dao::ProposalContent;
 use dao::UserVoteArgs;
 use dao::{DaoService, MemberItems};
 use disburse::DisburseService;
+use ic_cdk::api::management_canister::main::update_settings;
+use ic_cdk::api::management_canister::main::UpdateSettingsArgument;
+use ic_cdk::api::management_canister::provisional::CanisterSettings;
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
 use ic_kit::interfaces::management::CanisterStatus;
+use ic_kit::RejectionCode;
 
 use ic_kit::interfaces::management::WithCanisterId;
 use ic_kit::interfaces::Method;
@@ -119,6 +123,24 @@ fn user_info(principal: Option<Principal>) -> Result<MemberItems, String> {
     data.dao.user_info(user)
 }
 
+#[update(guard = "is_owner")]
+#[candid::candid_method(update)]
+async fn update_controller(principal_text: String) -> Result<(), (RejectionCode, String)> {
+    let mut owners = ic::get::<Data>().owners.get_owners();
+    owners.push(Principal::from_text(principal_text).expect("Could not decode the principal."));
+    update_settings(UpdateSettingsArgument {
+        canister_id: ic_cdk::id(),
+        settings: CanisterSettings {
+            controllers: Some(owners),
+            compute_allocation: None,
+            memory_allocation: None,
+            freezing_threshold: None,
+        },
+    })
+    .await?;
+    Ok(())
+}
+
 #[update]
 #[candid::candid_method]
 fn quit() -> Result<MemberItems, String> {
@@ -129,11 +151,10 @@ fn quit() -> Result<MemberItems, String> {
 
 #[update(guard = "is_owner")]
 #[candid::candid_method]
-fn add_owner(principal: Principal) -> Result<(), String> {
+fn add_owner(principal: Principal) -> Vec<Principal> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
-    data.owners.add_owner(principal);
-    Ok(())
+    data.owners.add_owner(principal)
 }
 
 #[query]

@@ -79,13 +79,13 @@ pub struct A {
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
 pub struct DaoInfo {
-    name: String,        // dao name
-    poster: String,      // dao poster
-    avatar: String,      // dao avatar
-    tags: Vec<String>,   // dao tags
-    intro: String,       // dao intro
-    canister_id: String, // current dao canister id
-    // social: Social,                          // social link
+    name: String,                    // dao name
+    poster: String,                  // dao poster
+    avatar: String,                  // dao avatar
+    tags: Vec<String>,               // dao tags
+    intro: String,                   // dao intro
+    canister_id: String,             // current dao canister id
+    created_at: u64,                 // init timestamp
     option: HashMap<String, String>, // user custom expand field
 }
 
@@ -99,6 +99,7 @@ impl Default for DaoInfo {
             intro: Default::default(),
             canister_id: ic_cdk::id().to_text(),
             option: Default::default(),
+            created_at: ic_cdk::api::time(),
         }
     }
 }
@@ -414,12 +415,9 @@ impl DaoService {
         Ok(self.info.clone())
     }
     pub fn update_dao_info(&mut self, dao_info: DaoInfo) -> Result<DaoInfo, String> {
-        self.info.name = dao_info.name;
-        self.info.poster = dao_info.poster;
-        self.info.avatar = dao_info.avatar;
-        self.info.tags = dao_info.tags;
-        self.info.intro = dao_info.intro;
-        // self.info.social = dao_info.social;
+        let created_at = self.info.created_at;
+        self.info = dao_info;
+        self.info.created_at = created_at;
         self.dao_info()
     }
     pub fn member_list(&mut self) -> Result<Vec<MemberItems>, String> {
