@@ -1,3 +1,25 @@
+type CanisterStatusResponse = record {
+  status : Status;
+  memory_size : nat;
+  cycles : nat;
+  settings : DefiniteCanisterSettings;
+  module_hash : opt vec nat8;
+};
+type DaoInfo = record {
+  option : vec record { text; text };
+  name : text;
+  tags : vec text;
+  canister_id : text;
+  intro : text;
+  avatar : text;
+  poster : text;
+};
+type DefiniteCanisterSettings = record {
+  freezing_threshold : nat;
+  controllers : vec principal;
+  memory_allocation : nat;
+  compute_allocation : nat;
+};
 type JoinDaoParams = record {
   nickname : text;
   social : vec Social;
@@ -5,9 +27,12 @@ type JoinDaoParams = record {
   avatar : text;
 };
 type MemberItems = record {
+  "principal" : principal;
   nickname : text;
   social : vec Social;
+  join_at : nat64;
   intro : text;
+  last_visit_at : nat64;
   status_code : int8;
   avatar : text;
 };
@@ -17,7 +42,9 @@ type Proposal = record {
   content : text;
   vote_data : vec record { principal; Votes };
   end_time : nat64;
+  start_time : nat64;
   timestamp : nat64;
+  property : opt vec record { text; text };
   proposer : principal;
   proposal_state : ProposalState;
 };
@@ -25,6 +52,8 @@ type ProposalContent = record {
   title : text;
   content : text;
   end_time : nat64;
+  start_time : nat64;
+  property : opt vec record { text; text };
 };
 type ProposalState = variant {
   Failed : text;
@@ -34,43 +63,47 @@ type ProposalState = variant {
   Succeeded;
   Accepted;
 };
-type Result = variant { Ok : nat; Err : TxError };
-type Result_1 = variant {
-  Ok : record { record { nat }; record { Result }; record { nat } };
-  Err : text;
+type RejectionCode = variant {
+  NoError;
+  CanisterError;
+  SysTransient;
+  DestinationInvalid;
+  Unknown;
+  SysFatal;
+  CanisterReject;
 };
-type Result_2 = variant { Ok : Proposal; Err : text };
-type Result_3 = variant { Ok : vec record { nat64; Proposal }; Err : text };
-type Result_4 = variant { Ok : MemberItems; Err : text };
-type Result_5 = variant { Ok : vec MemberItems; Err : text };
-type Result_6 = variant { Ok : bool; Err : text };
-type Result_7 = variant { Ok; Err : text };
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : DaoInfo; Err : text };
+type Result_2 = variant {
+  Ok : record { CanisterStatusResponse };
+  Err : record { RejectionCode; text };
+};
+type Result_3 = variant { Ok : text; Err : text };
+type Result_4 = variant { Ok : Proposal; Err : text };
+type Result_5 = variant { Ok : vec record { nat64; Proposal }; Err : text };
+type Result_6 = variant { Ok : MemberItems; Err : text };
+type Result_7 = variant { Ok : vec MemberItems; Err : text };
 type Social = record { key : text; link : text };
-type TxError = variant {
-  InsufficientAllowance;
-  InsufficientBalance;
-  ErrorOperationStyle;
-  Unauthorized;
-  LedgerTrap;
-  ErrorTo;
-  Other : text;
-  BlockUsed;
-  AmountTooSmall;
-};
+type Status = variant { stopped; stopping; running };
 type UserVoteArgs = record {
   id : nat64;
   "principal" : opt principal;
   vote : Votes;
 };
 type Votes = variant { No : nat64; Yes : nat64 };
-service :(principal) -> {
-  get_allow : () -> (Result_1);
-  get_proposal : (nat64) -> (Result_2) query;
-  get_proposal_list : () -> (Result_3) query;
-  initiate_proposal : (ProposalContent) -> (Result_2);
-  join : (JoinDaoParams) -> (Result_4);
-  member_list : () -> (Result_5);
+service : {
+  add_owner : (principal) -> (Result);
+  dao_info : () -> (Result_1);
+  dao_status : () -> (Result_2);
+  get_handled_proposal : () -> (vec record { nat64; Result_3 }) query;
+  get_owner : () -> (vec principal) query;
+  get_proposal : (nat64) -> (Result_4) query;
+  get_proposal_list : () -> (Result_5) query;
+  join : (JoinDaoParams) -> (Result_6);
+  member_list : () -> (Result_7);
+  propose : (ProposalContent) -> (Result_4);
   quit : () -> (Result_6);
-  user_info : () -> (Result_4);
-  vote : (UserVoteArgs) -> (Result_7);
+  update_dao_info : (DaoInfo) -> (Result_1);
+  user_info : (opt principal) -> (Result_6);
+  vote : (UserVoteArgs) -> (Result);
 }

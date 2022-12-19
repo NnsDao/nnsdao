@@ -86,7 +86,7 @@ pub struct DaoInfo {
     intro: String,       // dao intro
     canister_id: String, // current dao canister id
     // social: Social,                          // social link
-    option: Option<HashMap<String, String>>, // user custom expand field
+    option: HashMap<String, String>, // user custom expand field
 }
 
 impl Default for DaoInfo {
