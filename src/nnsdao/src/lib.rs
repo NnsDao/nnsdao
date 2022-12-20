@@ -159,7 +159,7 @@ fn add_owner(principal: Principal) -> Vec<Principal> {
 
 #[query]
 #[candid::candid_method(query)]
-fn get_owner() -> Vec<Principal> {
+fn get_owners() -> Vec<Principal> {
     let data = ic::get::<Data>();
     data.owners.get_owners()
 }
