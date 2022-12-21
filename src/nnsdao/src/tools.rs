@@ -1,6 +1,8 @@
 use crate::Data;
 use ic_cdk::export::Principal;
 use ic_kit::ic;
+use ic_kit::interfaces::management::{CanisterStatus, CanisterStatusResponse, WithCanisterId};
+use ic_kit::interfaces::Method;
 
 pub fn is_owner() -> Result<(), String> {
     let data = ic::get::<Data>();
@@ -72,4 +74,16 @@ pub fn decode_token(mut token: String) -> Result<(Principal, u32), String> {
         }
         None => Err("Token format error".to_owned()),
     }
+}
+
+pub async fn canister_status() -> Result<CanisterStatusResponse, String> {
+    CanisterStatus::perform(
+        Principal::management_canister(),
+        (WithCanisterId {
+            canister_id: ic_cdk::id(),
+        },),
+    )
+    .await
+    .map(|(res,)| res)
+    .map_err(|(code, reason)| reason)
 }

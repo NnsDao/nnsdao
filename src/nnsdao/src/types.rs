@@ -1,7 +1,14 @@
 use candid::CandidType;
+use ic_kit::interfaces::management::CanisterStatusResponse;
 
-#[derive(CandidType)]
-pub struct ProposalLog {
-    pub pending: Vec<u64>,
-    pub finished: Vec<(u64, Result<String, String>)>,
+use crate::dao::{DaoInfo, MemberItems};
+
+// daoinfo & canister status  & memberList &
+
+#[derive(CandidType, Clone, Debug)]
+pub struct DaoData {
+    pub info: DaoInfo,
+    pub status: CanisterStatusResponse,
+    pub owners: Vec<String>,
+    pub member_list: Vec<MemberItems>,
 }

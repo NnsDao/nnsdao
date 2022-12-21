@@ -91,7 +91,7 @@ type UserVoteArgs = record {
   vote : Votes;
 };
 type Votes = variant { No : nat64; Yes : nat64 };
-service : {
+service :(principal) -> {
   add_owner : (principal) -> (Result);
   dao_info : () -> (Result_1);
   dao_status : () -> (Result_2);
