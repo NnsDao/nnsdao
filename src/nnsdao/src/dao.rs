@@ -6,7 +6,9 @@ use crate::{canister::dip20, Data};
 use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
-use ic_kit::ic::{self};
+use ic_kit::ic;
+use ic_kit::interfaces::management::{CanisterStatus, CanisterStatusResponse, WithCanisterId};
+use ic_kit::interfaces::Method;
 use num_bigint::ToBigUint;
 use serde::Serialize;
 use std::{collections::HashMap, option::Option::Some};
@@ -79,14 +81,14 @@ pub struct A {
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Debug)]
 pub struct DaoInfo {
-    name: String,                    // dao name
-    poster: String,                  // dao poster
-    avatar: String,                  // dao avatar
-    tags: Vec<String>,               // dao tags
-    intro: String,                   // dao intro
-    canister_id: String,             // current dao canister id
-    created_at: u64,                 // init timestamp
-    option: HashMap<String, String>, // user custom expand field
+    pub name: String,                    // dao name
+    pub poster: String,                  // dao poster
+    pub avatar: String,                  // dao avatar
+    pub tags: Vec<String>,               // dao tags
+    pub intro: String,                   // dao intro
+    pub canister_id: String,             // current dao canister id
+    pub created_at: u64,                 // init timestamp
+    pub option: HashMap<String, String>, // user custom expand field
 }
 
 impl Default for DaoInfo {
@@ -420,13 +422,7 @@ impl DaoService {
         self.info.created_at = created_at;
         self.dao_info()
     }
-    pub fn member_list(&mut self) -> Result<Vec<MemberItems>, String> {
-        // if current user joined this dao ,update last_visit_at timestamp
-        let caller = ic_cdk::caller();
-
-        if let Some(info) = self.member_list.get_mut(&caller) {
-            info.last_visit_at = ic_cdk::api::time()
-        }
+    pub fn member_list(&self) -> Result<Vec<MemberItems>, String> {
         Ok(self.member_list.values().cloned().collect())
     }
     pub fn join(
@@ -453,9 +449,15 @@ impl DaoService {
         self.member_list.insert(principal, member.clone());
         Ok(member)
     }
-    pub fn user_info(&self, principal: Principal) -> Result<MemberItems, String> {
+    pub fn user_info(&mut self) -> Result<MemberItems, String> {
+        // if current user joined this dao ,update last_visit_at timestamp
+        let caller = ic_cdk::caller();
+
+        if let Some(info) = self.member_list.get_mut(&caller) {
+            info.last_visit_at = ic_cdk::api::time()
+        }
         self.member_list
-            .get(&principal)
+            .get(&caller)
             .cloned()
             .ok_or_else(|| "You are not yet a member of this group!".to_string())
     }

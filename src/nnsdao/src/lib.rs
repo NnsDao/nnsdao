@@ -6,10 +6,13 @@ mod logger;
 mod owner;
 pub mod sdk;
 mod tools;
+pub mod types;
 
 use crate::logger::*;
 use crate::owner::*;
 use crate::sdk::Proposal;
+use crate::tools::canister_status;
+use crate::types::DaoData;
 
 use candid::Principal;
 use dao::DaoInfo;
@@ -19,17 +22,16 @@ use dao::ProposalContent;
 use dao::UserVoteArgs;
 use dao::{DaoService, MemberItems};
 use disburse::DisburseService;
-use ic_cdk::api::management_canister::main::update_settings;
-use ic_cdk::api::management_canister::main::UpdateSettingsArgument;
+use ic_cdk::api::management_canister::main::{update_settings, UpdateSettingsArgument};
 use ic_cdk::api::management_canister::provisional::CanisterSettings;
+use ic_kit::interfaces::management::CanisterStatusResponse;
+
 use ic_cdk::api::stable::{StableReader, StableWriter};
 use ic_cdk_macros::*;
 use ic_kit::ic;
-use ic_kit::interfaces::management::CanisterStatus;
+
 use ic_kit::RejectionCode;
 
-use ic_kit::interfaces::management::WithCanisterId;
-use ic_kit::interfaces::Method;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Read;
@@ -79,11 +81,33 @@ fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
     data.dao.join(caller, user_info)
 }
 
-#[update]
+#[query]
 #[candid::candid_method]
 fn member_list() -> Result<Vec<MemberItems>, String> {
-    let data = ic::get_mut::<Data>();
+    let data = ic::get::<Data>();
     data.dao.member_list()
+}
+
+#[query]
+#[candid::candid_method]
+async fn dao_data() -> Result<DaoData, String> {
+    let data = ic::get::<Data>();
+    let info = data.dao.dao_info()?;
+    let member_list = data.dao.member_list()?;
+    let owners = data
+        .owners
+        .get_owners()
+        .iter()
+        .map(|el| el.to_text())
+        .collect();
+    let status = canister_status().await?;
+    let res = DaoData {
+        info,
+        owners,
+        status,
+        member_list,
+    };
+    Ok(res)
 }
 
 #[query]
@@ -95,17 +119,8 @@ fn dao_info() -> Result<dao::DaoInfo, String> {
 
 #[update]
 #[candid::candid_method]
-async fn dao_status() -> std::result::Result<
-    (ic_kit::interfaces::management::CanisterStatusResponse,),
-    (ic_kit::RejectionCode, std::string::String),
-> {
-    CanisterStatus::perform(
-        Principal::management_canister(),
-        (WithCanisterId {
-            canister_id: ic_cdk::id(),
-        },),
-    )
-    .await
+async fn dao_status() -> Result<CanisterStatusResponse, String> {
+    canister_status().await
 }
 
 #[update(guard = "is_owner")]
@@ -115,12 +130,11 @@ fn update_dao_info(dao_info: DaoInfo) -> Result<DaoInfo, String> {
     data.dao.update_dao_info(dao_info)
 }
 
-#[query]
+#[update]
 #[candid::candid_method]
-fn user_info(principal: Option<Principal>) -> Result<MemberItems, String> {
-    let user = principal.unwrap_or_else(ic_cdk::caller);
-    let data = ic::get::<Data>();
-    data.dao.user_info(user)
+fn user_info() -> Result<MemberItems, String> {
+    let data = ic::get_mut::<Data>();
+    data.dao.user_info()
 }
 
 #[update(guard = "is_owner")]
