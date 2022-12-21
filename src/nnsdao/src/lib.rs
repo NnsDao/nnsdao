@@ -88,7 +88,7 @@ fn member_list() -> Result<Vec<MemberItems>, String> {
     data.dao.member_list()
 }
 
-#[query]
+#[update]
 #[candid::candid_method]
 async fn dao_data() -> Result<DaoData, String> {
     let data = ic::get::<Data>();
