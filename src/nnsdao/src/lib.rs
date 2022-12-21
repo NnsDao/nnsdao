@@ -37,7 +37,6 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::vec::Vec;
 use tools::is_owner;
-use types::ProposalLog;
 
 // #[derive(Default, Clone)]
 #[derive(Deserialize, Serialize, Default, Clone, Debug)]
