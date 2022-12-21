@@ -7,8 +7,7 @@ use async_trait::async_trait;
 use candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use ic_kit::ic;
-use ic_kit::interfaces::management::{CanisterStatus, CanisterStatusResponse, WithCanisterId};
-use ic_kit::interfaces::Method;
+
 use num_bigint::ToBigUint;
 use serde::Serialize;
 use std::{collections::HashMap, option::Option::Some};
@@ -71,12 +70,6 @@ pub struct JoinDaoParams {
     pub avatar: String,
     pub intro: String,
     pub social: Vec<Social>,
-}
-
-#[derive(Default)]
-pub struct A {
-    name: String,
-    id: u8,
 }
 
 #[derive(CandidType, Clone, Serialize, Deserialize, Debug)]

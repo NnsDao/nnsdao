@@ -10,6 +10,7 @@ pub mod types;
 
 use crate::logger::*;
 use crate::owner::*;
+use crate::sdk::Comment;
 use crate::sdk::Proposal;
 use crate::tools::canister_status;
 use crate::types::DaoData;
@@ -79,6 +80,13 @@ fn join(user_info: JoinDaoParams) -> Result<MemberItems, String> {
     let data = ic::get_mut::<Data>();
     let caller = ic_cdk::caller();
     data.dao.join(caller, user_info)
+}
+
+#[update]
+#[candid::candid_method]
+pub async fn comment_proposal(id: u64, comment: Comment) -> Result<Proposal, String> {
+    let data = ic::get_mut::<Data>();
+    data.dao.basic.comment(id, comment)
 }
 
 #[query]

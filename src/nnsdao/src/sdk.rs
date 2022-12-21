@@ -79,6 +79,14 @@ pub struct Proposal {
     pub start_time: u64,
     pub end_time: u64,
     pub timestamp: u64,
+    pub comment: Vec<Comment>,
+}
+#[derive(Clone, Debug, CandidType, Deserialize, Serialize)]
+pub struct Comment {
+    content: String,
+    principal: Principal,
+    update_at: u64,
+    like: Vec<Principal>,
 }
 
 /// Create parameters for the proposal
@@ -128,7 +136,11 @@ where
             custom_fn,
         }
     }
-
+    pub fn comment(&mut self, id: u64, comment: Comment) -> Result<Proposal, String> {
+        let mut proposal = self.get_proposal(id)?;
+        proposal.comment.push(comment);
+        Ok(proposal)
+    }
     /// Submit the proposal
     pub async fn proposal(&mut self, arg: ProposalArg) -> Result<Proposal, String> {
         self.custom_fn.is_member(arg.proposer).await?;
@@ -143,6 +155,7 @@ where
             start_time: arg.start_time,
             end_time: arg.end_time,
             timestamp: api::time(),
+            comment: Default::default(),
         };
         self.proposal_list
             .insert(self.next_proposal_id, proposal.clone());
@@ -153,7 +166,7 @@ where
     pub fn get_proposal(&self, id: u64) -> Result<Proposal, String> {
         self.proposal_list
             .get(&id)
-            .ok_or("no proposal".to_owned())
+            .ok_or_else(|| "no proposal".to_owned())
             .cloned()
     }
 
