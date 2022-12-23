@@ -137,9 +137,12 @@ where
         }
     }
     pub fn comment(&mut self, id: u64, comment: Comment) -> Result<Proposal, String> {
-        let mut proposal = self.get_proposal(id)?;
+        let proposal = self
+            .proposal_list
+            .get_mut(&id)
+            .ok_or_else(|| "no proposal".to_owned())?;
         proposal.comment.push(comment);
-        Ok(proposal)
+        Ok(proposal.clone())
     }
     /// Submit the proposal
     pub async fn proposal(&mut self, arg: ProposalArg) -> Result<Proposal, String> {
