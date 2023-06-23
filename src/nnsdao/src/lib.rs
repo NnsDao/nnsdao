@@ -250,27 +250,28 @@ async fn vote(arg: UserVoteArgs) -> Result<(), String> {
 
 #[query]
 #[candid::candid_method(query)]
-pub fn get_handled_proposal() -> Vec<(u64, Result<String, String>)> {
-    let data = ic::get::<Data>();
+pub async fn get_handled_proposal() -> Vec<(u64, Result<String, String>)> {
+    let data = ic::get_mut::<Data>();
+    data.dao.check_proposal().await;
     data.dao.get_handled_proposal()
 }
-// heartbeat: 1s
-#[heartbeat]
-async fn heartbeat() {
-    let data = ic::get_mut::<Data>();
-    // Limit heartbeats
-    let now = ic_cdk::api::time();
-    if now - data.heartbeat_last_beat < 5 * 1_000_000_000 {
-        return;
-    }
-    data.heartbeat_last_beat = now;
-    data.dao.check_proposal().await;
-    // log
+// // heartbeat: 1s
+// #[heartbeat]
+// async fn heartbeat() {
+//     let data = ic::get_mut::<Data>();
+//     // Limit heartbeats
+//     let now = ic_cdk::api::time();
+//     if now - data.heartbeat_last_beat < 5 * 1_000_000_000 {
+//         return;
+//     }
+//     data.heartbeat_last_beat = now;
+//     data.dao.check_proposal().await;
+//     // log
 
-    // check proposal expire time
+//     // check proposal expire time
 
-    // ic_cdk::println!("check proposal expire time : {:?}",'');
-}
+//     // ic_cdk::println!("check proposal expire time : {:?}",'');
+// }
 
 #[pre_upgrade]
 fn pre_upgrade() {
